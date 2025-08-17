@@ -18,7 +18,7 @@ This option will set the *Master View* index based where this button was pressed
 #### Available Views List:
 The list will be Populated with the Available Views, if the user have other windows with 3D Views they will also be shown in the List.
 #### Identify View:
-This will show a *pop-up* with the *Viewport Index* and the *Window* of where the button was pressed.
+This will show a *Text* saying the view index for each 3D View Opened
 #### Refresh List:
 if for any reason nothing is shown in the *Available Views* List, use this button to force the Refresh for the List.
 #### Local View: 
@@ -26,7 +26,7 @@ This is an upgraded operator that works as the default one from Blender, the dif
 If the ***Keep Lights***  Boolean is on, this will keep the *Visible Lights* in the scene while Isolating an object.
 
 ---
-## Sync Options (Subpanel):
+## Sync Options (Dropdown Menu):
 
 These options control what will be updated in the Synced Views.
 
@@ -49,8 +49,6 @@ Boolean Buttons:
 - **Clip Start**: Updates view clipping start when true.
 - **Clip End**: Updates view clipping end when true.
 - **Focal Length**: Updates focal length when true.
-- **Gizmo Handling**: This option will try to deal with the problem of 'Not being able to use Transform Gizmos' while the *Refresh Rate* low. When On, the Refresh Rate will be increased when the user perform a *Left-Click* with the mouse, this can still be annoying, the recommendation if you want to use gizmos is to keep a higher value for the refreshing time.
-- **Refresh Delay**: This Input show up when the *Handling Gizmos* is On, the value will determine the Delay time of the *Refresh Time* to back to normal.
 
 ### Lock Rotation System:
 #### Available Views List:
@@ -58,7 +56,7 @@ The list will be Populated with the Available Views, if the user have other wind
 	For each view in the list the user is able to lock the desired Viewport in the Predefined Views as: Top, Bottom, Right, Left Front and Back, Camera or the *Matching View* of the *Master Viewport*
 	(same as the default Blender Numerical Pad 1, 3, 7 and etc.) 
 #### Identify View:
-This will show a *pop-up* with the *Viewport Index* and the *Window* of where the button was pressed.
+This will show a *Text* saying the view index for each 3D View Opened
 #### Refresh List:
 if for any reason nothing is shown in the *Available Views* List, use this button to force the Refresh for the List.
 #### Set Clean View:
