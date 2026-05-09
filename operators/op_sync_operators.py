@@ -237,7 +237,7 @@ def apply_shading_preset(context, view_index, preset_type):
         shading.type = 'SOLID'
         shading.light = 'FLAT'
         shading.color_type = 'OBJECT'
-        shading.background_type = 'CUSTOM'
+        shading.background_type = 'VIEWPORT'
         shading.background_color = (0, 0, 0)
         overlay.show_overlays = False
         space.show_gizmo = False

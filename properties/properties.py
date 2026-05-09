@@ -19,7 +19,7 @@ def update_view_list(self, context):
     bpy.ops.view3d.update_view_count()
 
 class KT_SyncOptions(PropertyGroup):
-    addon_mode: EnumProperty(
+    addon_mode: EnumProperty( # type: ignore
         name="Panel Mode",
         description="Choose addon mode",
         items=[
@@ -30,17 +30,17 @@ class KT_SyncOptions(PropertyGroup):
         update = update_view_list,
     ) # type: ignore
 
-    view_3d_index: IntProperty(
+    view_3d_index: IntProperty( # type: ignore
         name="View 3D ID", 
         default=-1
         ) # type: ignore
-    master_view_index: IntProperty(
+    master_view_index: IntProperty( # type: ignore
         name="Master View Index",
         description="Index of the master View3D",
         default=0,
         min=0
     ) # type: ignore
-    sync_refresh_rate: FloatProperty(
+    sync_refresh_rate: FloatProperty( # type: ignore
         name="Refresh Rate",
         description="Refresh rate for real-time synchronization (in seconds)",
         default=0.01,
@@ -48,68 +48,68 @@ class KT_SyncOptions(PropertyGroup):
         max=1.0
     ) # type: ignore
     
-    auto_master: bpy.props.BoolProperty(
+    auto_master: bpy.props.BoolProperty( # type: ignore
         name="Auto Master",
         description="Automatically set master view to the active 3D view",
         default=False,
         update=auto_master_update
     ) # type: ignore
 
-    sync_view_distance: BoolProperty(
+    sync_view_distance: BoolProperty( # type: ignore
         name="Sync View Distance", 
         default=True, 
         description="Sync viewing distance between View Distance"
     )    # type: ignore
     
-    sync_view_location: BoolProperty(
+    sync_view_location: BoolProperty( # type: ignore
         name="Sync View Location",
         default=True,
         description="Sync viewing location between 3D Views"
     )    # type: ignore
     
-    sync_view_rotation: BoolProperty(
+    sync_view_rotation: BoolProperty( # type: ignore
         name="Sync View Rotation",
         default=True,
         description="Sync viewing rotation between 3D Views"
     )    # type: ignore
     
-    sync_camera_zoom: BoolProperty(
+    sync_camera_zoom: BoolProperty( # type: ignore
         name="Sync Camera Zoom",
         default=True,
         description="Sync camera zoom between 3D Views"
     )    # type: ignore
 
-    sync_camera_offset: BoolProperty(
+    sync_camera_offset: BoolProperty( # type: ignore
         name="Sync Camera Offset",
         default=True,
         description="Sync camera offset between 3D Views"
     )    # type: ignore
     
-    sync_view_perspective: BoolProperty(
+    sync_view_perspective: BoolProperty( # type: ignore
         name="Sync View Perspective",
         default=True,
         description="Sync viewing perspective between 3D Views"
     )    # type: ignore 
     
-    sync_clip_start: BoolProperty(
+    sync_clip_start: BoolProperty( # type: ignore
         name="Sync Clip Start",
         default=True,
         description="Sync the start point of the viewing clip between 3D Views"
     )    # type: ignore
 
-    sync_clip_end: BoolProperty(
+    sync_clip_end: BoolProperty( # type: ignore
         name="Sync Clip End",
         default=True,
         description="Sync the end point of the viewing clip between 3D Views"
     )    # type: ignore
 
-    sync_focal_length: BoolProperty(
+    sync_focal_length: BoolProperty( # type: ignore
         name="Sync Focal Length",
         default=True,
         description="Sync focal length between 3D Views"
     )    # type: ignore   
 
-    sync_view_distance_adjust: FloatProperty(
+    sync_view_distance_adjust: FloatProperty( # type: ignore
         name="Adjust View Distance:",
         default=1.0,
         min=0.01,
@@ -117,19 +117,19 @@ class KT_SyncOptions(PropertyGroup):
         description="Fine adjustment (Multiplier) for Sync View Distance"
     )   # type: ignore
 
-    dont_exclude_lights: bpy.props.BoolProperty(
+    dont_exclude_lights: bpy.props.BoolProperty( # type: ignore
         name="Don't Hide Lights", 
         default=True,
         description="Keep lights visible when using Local View"
     )   # type: ignore
 
 ## LOCK
-    enable_camera_pan: BoolProperty(
+    enable_camera_pan: BoolProperty( # type: ignore
         name="Enable Camera Pan",
         description="Enable panning with middle mouse in camera view",
         default=False
     )   # type: ignore
-    enable_pan_on_lock: BoolProperty(
+    enable_pan_on_lock: BoolProperty( # type: ignore
         name="Pan on Rotation Lock",
         description="Enable panning with middle mouse when View Rotation is locked",
         default=False
