@@ -217,6 +217,112 @@ class KT_VIEW3D_OT_real_time_sync_modal(bpy.types.Operator):
 
 ##
 ##
+# Storage for original viewport states before applying presets
+viewport_states = {}
+
+def capture_viewport_state(space):
+    shading = space.shading
+    overlay = space.overlay
+    
+    state = {
+        'shading': {
+            'type': shading.type,
+            'light': shading.light,
+            'color_type': shading.color_type,
+            'background_type': shading.background_type,
+            'background_color': tuple(shading.background_color),
+            'show_xray': shading.show_xray,
+            'xray_alpha': shading.xray_alpha,
+            'show_object_outline': shading.show_object_outline,
+            'studio_light': shading.studio_light,
+            'single_color': tuple(shading.single_color),
+            'show_cavity': shading.show_cavity,
+            'cavity_type': shading.cavity_type,
+            'cavity_ridge_factor': shading.cavity_ridge_factor,
+            'cavity_valley_factor': shading.cavity_valley_factor,
+        },
+        'overlay': {
+            'show_overlays': overlay.show_overlays,
+            'show_wireframes': overlay.show_wireframes,
+            'wireframe_threshold': overlay.wireframe_threshold,
+            'show_face_orientation': overlay.show_face_orientation,
+            'show_stats': overlay.show_stats,
+            'show_cursor': overlay.show_cursor,
+        },
+        'space': {
+            'show_gizmo': space.show_gizmo,
+        }
+    }
+    return state
+
+def restore_viewport_state(space, state):
+    shading = space.shading
+    overlay = space.overlay
+    
+    # Shading
+    s_state = state['shading']
+    shading.type = s_state['type']
+    shading.light = s_state['light']
+    shading.color_type = s_state['color_type']
+    shading.background_type = s_state['background_type']
+    shading.background_color = s_state['background_color']
+    shading.show_xray = s_state['show_xray']
+    shading.xray_alpha = s_state['xray_alpha']
+    shading.show_object_outline = s_state['show_object_outline']
+    shading.studio_light = s_state['studio_light']
+    shading.single_color = s_state['single_color']
+    shading.show_cavity = s_state['show_cavity']
+    shading.cavity_type = s_state['cavity_type']
+    shading.cavity_ridge_factor = s_state['cavity_ridge_factor']
+    shading.cavity_valley_factor = s_state['cavity_valley_factor']
+    
+    # Overlay
+    o_state = state['overlay']
+    overlay.show_overlays = o_state['show_overlays']
+    overlay.show_wireframes = o_state['show_wireframes']
+    overlay.wireframe_threshold = o_state['wireframe_threshold']
+    overlay.show_face_orientation = o_state['show_face_orientation']
+    overlay.show_stats = o_state['show_stats']
+    overlay.show_cursor = o_state['show_cursor']
+    
+    # Space
+    space.show_gizmo = state['space']['show_gizmo']
+
+def set_viewport_clean_state(space, keep_wireframe=False, keep_normals=False):
+    """Utility to turn off most overlays and gizmos for a clean look"""
+    overlay = space.overlay
+    
+    # Always turn off gizmos in presets unless it's 'NONE'
+    space.show_gizmo = False
+    
+    # If we don't need any specific overlay, just turn off the master switch
+    if not keep_wireframe and not keep_normals:
+        overlay.show_overlays = False
+        return
+
+    # If we need specific overlays, we must keep the master switch ON
+    # but we disable all the other distracting sub-overlays
+    overlay.show_overlays = True
+    
+    # Shading/Topology related
+    overlay.show_wireframes = keep_wireframe
+    overlay.show_face_orientation = keep_normals
+    
+    # Distractions to hide
+    overlay.show_cursor = False
+    overlay.show_floor = False
+    overlay.show_axis_x = False
+    overlay.show_axis_y = False
+    overlay.show_axis_z = False
+    overlay.show_text = False
+    overlay.show_stats = False
+    overlay.show_extras = False
+    overlay.show_relationship_lines = False
+    overlay.show_object_origins = False
+    overlay.show_outline_selected = False
+    overlay.show_bones = False
+    overlay.show_annotation = False
+
 ## Update View Properties (View Couunt List)
 def apply_shading_preset(context, view_index, preset_type):
     view3d_areas = [area for window in context.window_manager.windows 
@@ -233,22 +339,102 @@ def apply_shading_preset(context, view_index, preset_type):
     shading = space.shading
     overlay = space.overlay
 
+    # Capture state if not already stored
+    if preset_type != 'NONE':
+        if view_index not in viewport_states:
+            viewport_states[view_index] = capture_viewport_state(space)
+        else:
+            # If we already have a saved state, restore it first 
+            # so the new preset starts from the clean original state
+            restore_viewport_state(space, viewport_states[view_index])
+
     if preset_type == 'SILHOUETTE':
         shading.type = 'SOLID'
         shading.light = 'FLAT'
         shading.color_type = 'OBJECT'
         shading.background_type = 'VIEWPORT'
         shading.background_color = (0, 0, 0)
-        overlay.show_overlays = False
-        space.show_gizmo = False
-    elif preset_type == 'NONE':
-        # Default fallback (Studio, Overlays on, Gizmos on)
+        set_viewport_clean_state(space)
+    elif preset_type == 'SILHOUETTE_INV':
+        shading.type = 'SOLID'
+        shading.light = 'FLAT'
+        shading.color_type = 'SINGLE'
+        shading.single_color = (0, 0, 0)
+        shading.background_type = 'VIEWPORT'
+        shading.background_color = (1, 1, 1)
+        set_viewport_clean_state(space)
+    elif preset_type == 'TOPOLOGY':
         shading.type = 'SOLID'
         shading.light = 'STUDIO'
-        shading.color_type = 'MATERIAL'
-        shading.background_type = 'THEME'
-        overlay.show_overlays = True
-        space.show_gizmo = True
+        set_viewport_clean_state(space, keep_wireframe=True)
+        overlay.wireframe_threshold = 1.0
+    elif preset_type == 'NORMALS':
+        shading.type = 'SOLID'
+        shading.light = 'MATCAP'
+        shading.studio_light = 'check_normal+y.exr'
+        set_viewport_clean_state(space, keep_normals=True)
+    elif preset_type == 'HARD_SURFACE':
+        shading.type = 'SOLID'
+        shading.light = 'MATCAP'
+        shading.studio_light = 'hard_surface_red.exr'
+        set_viewport_clean_state(space)
+    elif preset_type == 'REFL_H':
+        shading.type = 'SOLID'
+        shading.light = 'MATCAP'
+        shading.studio_light = 'check_reflection_horizontal.exr'
+        set_viewport_clean_state(space)
+    elif preset_type == 'REFL_V':
+        shading.type = 'SOLID'
+        shading.light = 'MATCAP'
+        shading.studio_light = 'check_reflection_vertical.exr'
+        set_viewport_clean_state(space)
+    elif preset_type == 'TOON_DARK':
+        shading.type = 'SOLID'
+        shading.light = 'MATCAP'
+        shading.studio_light = 'toon_dark.exr'
+        set_viewport_clean_state(space)
+    elif preset_type == 'TOON_LIGHT':
+        shading.type = 'SOLID'
+        shading.light = 'MATCAP'
+        shading.studio_light = 'toon_light.exr'
+        set_viewport_clean_state(space)
+    elif preset_type == 'HIGH_DETAIL':
+        shading.type = 'SOLID'
+        shading.light = 'MATCAP'
+        shading.studio_light = 'clay_brown.exr'
+        shading.show_cavity = True
+        shading.cavity_type = 'BOTH'
+        shading.cavity_ridge_factor = 2.0
+        shading.cavity_valley_factor = 2.0
+        shading.show_object_outline = True
+        set_viewport_clean_state(space)
+    elif preset_type == 'XRAY':
+        shading.type = 'SOLID'
+        shading.show_xray = True
+        shading.xray_alpha = 0.5
+        set_viewport_clean_state(space)
+    elif preset_type == 'RANDOM':
+        shading.type = 'SOLID'
+        shading.color_type = 'RANDOM'
+        set_viewport_clean_state(space)
+    elif preset_type == 'CLEAN':
+        set_viewport_clean_state(space)
+    elif preset_type == 'NONE':
+        # Restore original state if it exists
+        if view_index in viewport_states:
+            restore_viewport_state(space, viewport_states[view_index])
+            del viewport_states[view_index]
+        else:
+            # Fallback if no state was stored
+            shading.type = 'SOLID'
+            shading.light = 'STUDIO'
+            shading.color_type = 'MATERIAL'
+            shading.background_type = 'THEME'
+            shading.show_xray = False
+            overlay.show_overlays = True
+            overlay.show_wireframes = False
+            overlay.show_face_orientation = False
+            space.show_gizmo = True
     
     area.tag_redraw()
 

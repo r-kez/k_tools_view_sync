@@ -11,6 +11,18 @@ from ..operators.op_auto_master import auto_master_update
 shading_preset_items = [
     ('NONE', "None", "No shading preset applied", 'NONE', 0),
     ('SILHOUETTE', "Silhouette", "Flat shading with black background for silhouette analysis", 'GHOST_ENABLED', 1),
+    ('SILHOUETTE_INV', "Silhouette Inv", "Inverted silhouette: Black models on white background", 'GHOST_DISABLED', 12),
+    ('TOPOLOGY', "Topology", "Solid shading with wireframe overlay for checking mesh flow", 'SHADING_WIRE', 2),
+    ('NORMALS', "Normals Check", "Show face orientation using Matcap normal check", 'FACESEL', 3),
+    ('XRAY', "X-Ray View", "Solid shading with X-Ray transparency", 'XRAY', 4),
+    ('RANDOM', "Random Colors", "Assign random colors to each object to distinguish shapes", 'COLOR', 5),
+    ('CLEAN', "Clean View", "Hide all overlays and gizmos but keep current shading", 'RESTRICT_SELECT_OFF', 6),
+    ('HARD_SURFACE', "Red Clay", "Hard surface analysis using Red Clay Matcap", 'SCULPTMODE_HLT', 7),
+    ('REFL_H', "Refl. Horizontal", "Check surfaces with horizontal zebra matcap", 'STRANDS', 8),
+    ('REFL_V', "Refl. Vertical", "Check surfaces with vertical zebra matcap", 'STRANDS', 9),
+    ('TOON_DARK', "Toon Dark", "Apply Toon Dark shading matcap", 'LIGHT', 10),
+    ('TOON_LIGHT', "Toon Light", "Apply Toon Light shading matcap", 'LIGHT', 11),
+    ('HIGH_DETAIL', "High Detail", "Maximize contrast with Cavity and Outlines for detail analysis", 'SOLO_ON', 13),
 ]
 
 def update_view_list(self, context):

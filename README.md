@@ -59,9 +59,22 @@ The list will be Populated with the Available Views, if the user have other wind
 This will show a *Text* saying the view index for each 3D View Opened
 #### Refresh List:
 if for any reason nothing is shown in the *Available Views* List, use this button to force the Refresh for the List.
-#### Set Clean View:
-It will ‘clean’ the view that is Locked, the header, default gizmos and overlays will be disabled, they appear again when you click the button once more.
-#### Special Gizmos:
-Show in the Locked Viewport the following buttons:  *Toggle Solid Shading*; *Toggle Material Shading*; *Toggle Render Preview*; *Shading Menu Popover*; *Set Camera View*; *Move the View* and *Zoom in/out*.
+### Shading Presets System:
+Each 3D Viewport in the *Available Views* list now has an individual **Shading Preset** selector. This allows you to have different visual analysis modes for each synchronized window.
+
+#### Artistic Presets:
+- **Silhouette / Silhouette Inv**: High contrast black & white modes for form analysis.
+- **Random Colors**: Distinguish objects instantly with randomized colors.
+- **Toon (Dark/Light)**: Specialized cel-shading matcaps.
+
+#### Technical Presets:
+- **Topology**: Shows a clean solid view with a high-contrast wireframe overlay.
+- **Normals Check**: Uses a specialized Normal Matcap and Face Orientation overlay.
+- **Zebra (H/V)**: Reflection analysis for surfacing check.
+- **High Detail**: Maximizes Cavity and Outlines for sculpting and detail check.
+- **X-Ray View**: Transparent shading for depth analysis.
+
+#### Smart State Capture:
+The add-on automatically saves the **Original State** of your viewport (shading, overlays, gizmos) before any preset is applied. Selecting **"None"** restores your exact previous configuration, ensuring your work setup is never lost.
 
 

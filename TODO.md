@@ -2,15 +2,18 @@
 
 ## Features to Implement
 - [x] **Shading Presets for Viewports**
-    - [x] Create an Enum for shading presets (Silhouette, Wireframe, Normal Map, etc.).
-    - [x] Implement `Silhouette` preset:
-        - [x] Shading: Solid / Flat / Object Color.
-        - [x] Background: Solid Black.
-        - [x] Overlays & Gizmos: Disabled.
-    - [x] Create an operator to apply/reset presets to specific 3D areas.
-    - [x] Integrate preset selection into the Sync/Lock UI list.
-    - [x] Add "Restore Defaults" (NONE) option for each view.
+    - [x] Create an Enum for shading presets.
+    - [x] Implement artistic presets: `Silhouette`, `Silhouette Inverted`, `Random Colors`.
+    - [x] Implement technical presets: `Topology` (Wireframe), `Normals Check` (Normal Matcap).
+    - [x] Implement matcap-based presets: `Red Clay`, `Zebra (H/V)`, `Toon (Dark/Light)`.
+    - [x] Implement `High Detail` (Max Cavity + Outline).
+    - [x] Implement `Clean View` (Minimalist UI).
+    - [x] Implement **Viewport State Capture**: Saves and restores original settings.
+    - [x] **Bug Fix**: Fixed preset inheritance via state restoration.
 
-## Improvements
-- [ ] Refactor dynamic property creation to be more robust.
-- [ ] Add more presets (X-Ray, Random Colors for IDs).
+## Improvements & Future
+- [ ] **Analytic Window Mode** (New Window + Split Screen Analysis).
+- [x] Refactor dynamic property creation for presets.
+- [x] Add extensive Matcap-based presets.
+- [ ] Implement custom user presets (Save current state as preset).
+- [ ] UI: Add thumbnails/icons for each preset.
