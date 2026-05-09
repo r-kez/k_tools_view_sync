@@ -4,7 +4,6 @@ from bpy.types import Operator
 # Global variables for monitoring state
 monitoring_active = False
 active_viewport_id = "None"
-last_mouse_x, last_mouse_y = 0, 0
 last_active_area = None
 
 class KT_VIEW3D_OT_auto_master_modal(Operator):
@@ -15,7 +14,7 @@ class KT_VIEW3D_OT_auto_master_modal(Operator):
     timer = None
 
     def modal(self, context, event):
-        global active_viewport_id, last_mouse_x, last_mouse_y, last_active_area
+        global active_viewport_id, last_active_area
         scene = context.scene
         sync_options = scene.sync_options
         
@@ -26,65 +25,42 @@ class KT_VIEW3D_OT_auto_master_modal(Operator):
                 self.timer = None
             return {'CANCELLED'}
 
-        # Update mouse position
+        # Update active viewport based on context
         if event.type == 'MOUSEMOVE':
-            last_mouse_x, last_mouse_y = event.mouse_x, event.mouse_y
+            found_area = context.area
             
-            # Reset view index counter
-            global_view_index = -1
-            found_area = None
-            found_window = None
-            
-            # Check which area contains the mouse
-            for window in context.window_manager.windows:
-                for area in window.screen.areas:
-                    if area.type == 'VIEW_3D':
-                        global_view_index += 1  # Increment for each View3D found
-                        
-                        # Check if mouse is inside this area
-                        if (area.x <= last_mouse_x <= area.x + area.width and
-                            area.y <= last_mouse_y <= area.y + area.height):
-                            found_area = area
-                            found_window = window
-                            break
-                if found_area:
-                    break
-
-            # If we found a new active area
-            if found_area and found_area != last_active_area:
+            # If we found a 3D area under the mouse
+            if found_area and found_area.type == 'VIEW_3D' and found_area != last_active_area:
                 last_active_area = found_area
                 
-                # Update active viewport ID with window information
+                # Find the window containing this area for the ID string
+                found_window = context.window
                 active_viewport_id = f"View ID: {found_area.as_pointer()} (Window: {found_window.screen.name})"
 
-                # Start counting from beginning for accurate global index
+                # Calculate the global index across all windows
                 correct_global_index = 0
+                found_match = False
+                
                 for w in context.window_manager.windows:
                     for a in w.screen.areas:
                         if a.type == 'VIEW_3D':
                             if a.as_pointer() == found_area.as_pointer():
-                                # Create override context
-                                override = context.copy()
-                                override['window'] = w
-                                override['screen'] = w.screen
-                                override['area'] = a
-                                override['region'] = a.regions[-1]
-                                
-                                # Update master view index
+                                # Temporarily disable sync to avoid recursion during property update
                                 was_syncing = context.scene.real_time_sync
                                 if was_syncing:
                                     context.scene.real_time_sync = False
                                 
                                 sync_options.master_view_index = correct_global_index
-                                #print(f"Master view set to: {correct_global_index} in window {w.screen.name}")
                                 
                                 if was_syncing:
                                     context.scene.real_time_sync = True
                                 
-                                # Force UI update
                                 found_area.tag_redraw()
-                                return {'PASS_THROUGH'}
+                                found_match = True
+                                break
                             correct_global_index += 1
+                    if found_match:
+                        break
 
         # Handle direct viewport interaction
         if event.type in {'LEFTMOUSE', 'RIGHTMOUSE', 'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
@@ -108,7 +84,7 @@ class KT_VIEW3D_OT_auto_master_modal(Operator):
         if not context.scene.sync_options.auto_master:
             return {'CANCELLED'}
             
-        self.timer = context.window_manager.event_timer_add(0.1, window=context.window)
+        self.timer = context.window_manager.event_timer_add(0.1)
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 

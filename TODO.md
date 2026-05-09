@@ -12,7 +12,7 @@
     - [x] **Bug Fix**: Fixed preset inheritance via state restoration.
 
 ## Improvements & Future
-- [ ] **Analytic Window Mode** (New Window + Split Screen Analysis).
+- [ ] **Analytic Window Mode** (WIP - Registration paused).
 - [x] Refactor dynamic property creation for presets.
 - [x] Add extensive Matcap-based presets.
 - [ ] Implement custom user presets (Save current state as preset).
