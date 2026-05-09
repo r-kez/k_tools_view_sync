@@ -1,0 +1,21 @@
+schema_version = "1.0.0"
+
+
+id = "k_tools_view_sync"
+version = "2.7.0"
+name = "K-Tools: Sync | Lock Viewport"
+tagline = "Sync or Lock multiple viewports at once in real-time"
+maintainer = "Robert Kezives <kezives3D@gmail.com>"
+
+type = "add-on"
+
+website = "https://kezives.gumroad.com/l/Sync-Lock_Viewport"
+
+tags = ["3D View"]
+
+blender_version_min = "4.2.0"
+
+
+license = [
+  "SPDX:GPL-3.0-or-later",
+]
