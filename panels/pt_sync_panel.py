@@ -72,6 +72,7 @@ class KT_PT_SyncPanel:
                         text=f"View {view_index}",
                         icon='LOCKVIEW_ON' if getattr(scene, f"sync_view_{view_index}") else 'LOCKVIEW_OFF'
                     )
+                    row.prop(scene, f"sync_view_preset_{view_index}", text="")
 
 
 

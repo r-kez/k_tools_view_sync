@@ -8,6 +8,11 @@ from bpy.types import PropertyGroup
 from bpy.props import BoolProperty, IntProperty, FloatProperty
 from ..operators.op_auto_master import auto_master_update
 
+shading_preset_items = [
+    ('NONE', "None", "No shading preset applied", 'NONE', 0),
+    ('SILHOUETTE', "Silhouette", "Flat shading with black background for silhouette analysis", 'GHOST_ENABLED', 1),
+]
+
 def update_view_list(self, context):
     scene = context.scene
 

@@ -1,7 +1,8 @@
 import bpy
-from bpy.props import BoolProperty
+from bpy.props import BoolProperty, EnumProperty
 from bpy.types import Operator
 import time
+from ..properties.properties import shading_preset_items
 
 ##
 ## start/stop syncing
@@ -217,6 +218,51 @@ class KT_VIEW3D_OT_real_time_sync_modal(bpy.types.Operator):
 ##
 ##
 ## Update View Properties (View Couunt List)
+def apply_shading_preset(context, view_index, preset_type):
+    view3d_areas = [area for window in context.window_manager.windows 
+                    for area in window.screen.areas if area.type == 'VIEW_3D']
+    
+    if view_index >= len(view3d_areas):
+        return
+
+    area = view3d_areas[view_index]
+    space = area.spaces.active
+    if not space or space.type != 'VIEW_3D':
+        return
+        
+    shading = space.shading
+    overlay = space.overlay
+
+    if preset_type == 'SILHOUETTE':
+        shading.type = 'SOLID'
+        shading.light = 'FLAT'
+        shading.color_type = 'OBJECT'
+        shading.background_type = 'CUSTOM'
+        shading.background_color = (0, 0, 0)
+        overlay.show_overlays = False
+        space.show_gizmo = False
+    elif preset_type == 'NONE':
+        # Default fallback (Studio, Overlays on, Gizmos on)
+        shading.type = 'SOLID'
+        shading.light = 'STUDIO'
+        shading.color_type = 'MATERIAL'
+        shading.background_type = 'THEME'
+        overlay.show_overlays = True
+        space.show_gizmo = True
+    
+    area.tag_redraw()
+
+def update_view_preset(self, context):
+    # Find which view triggered the change (or just apply to all for simplicity)
+    view3d_areas = [area for window in context.window_manager.windows 
+                    for area in window.screen.areas if area.type == 'VIEW_3D']
+    
+    for i in range(len(view3d_areas)):
+        prop_name = f"sync_view_preset_{i}"
+        if hasattr(self, prop_name):
+            preset_type = getattr(self, prop_name)
+            apply_shading_preset(context, i, preset_type)
+
 def update_view_properties(self, context):
     # Get ALL views from ALL windows
     view3d_areas = [area for window in bpy.context.window_manager.windows 
@@ -235,6 +281,16 @@ def update_view_properties(self, context):
                 name=f"Sync View {i}",
                 description=f"Synchronize View3D {i}",
                 default=True
+            ))
+        
+        # Preset Property
+        if not hasattr(bpy.types.Scene, f"sync_view_preset_{i}"):
+            setattr(bpy.types.Scene, f"sync_view_preset_{i}", EnumProperty(
+                name=f"Preset View {i}",
+                description=f"Shading Preset for View3D {i}",
+                items=shading_preset_items,
+                default='NONE',
+                update=update_view_preset
             ))
 
     # Update master view index limit
