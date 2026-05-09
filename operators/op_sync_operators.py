@@ -251,6 +251,7 @@ def capture_viewport_state(space):
         },
         'space': {
             'show_gizmo': space.show_gizmo,
+            'show_region_header': space.show_region_header,
         }
     }
     return state
@@ -287,13 +288,15 @@ def restore_viewport_state(space, state):
     
     # Space
     space.show_gizmo = state['space']['show_gizmo']
+    space.show_region_header = state['space']['show_region_header']
 
 def set_viewport_clean_state(space, keep_wireframe=False, keep_normals=False):
     """Utility to turn off most overlays and gizmos for a clean look"""
     overlay = space.overlay
     
-    # Always turn off gizmos in presets unless it's 'NONE'
+    # Always turn off gizmos and header in presets unless it's 'NONE'
     space.show_gizmo = False
+    space.show_region_header = False
     
     # If we don't need any specific overlay, just turn off the master switch
     if not keep_wireframe and not keep_normals:

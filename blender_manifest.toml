@@ -2,7 +2,7 @@ schema_version = "1.0.0"
 
 
 id = "k_tools_view_sync"
-version = "2.7.0"
+version = "2.8.0"
 name = "K-Tools: Sync | Lock Viewport"
 tagline = "Sync or Lock multiple viewports at once in real-time"
 maintainer = "Robert Kezives <kezives3D@gmail.com>"
