@@ -1,80 +1,92 @@
+# K-Tools: Sync | Lock Viewport (v2.8.1)
 
-#### **Addon Location: 3D View -> N-Panel -> K-Tools -> Sync | Lock Viewport**
+**Addon Location:** `3D View -> N-Panel -> K-Tools -> Sync | Lock Viewport`
 
-### View Synchronization Panel:
-#### Single Match:
-Allow the user to Match all the selected view from the Available Views List only once, not a live syncing. (If nothing happens, please refresh the Available View List first)
-#### Real-time Sync:
-Allow the user to constantly sync all the selected views from the Available View List. All the views will be masked as True by default. While this option is running the View List will be refreshed constantly.
-#### Master View control:
-This will be the index of the Viewport that will control all the other views marked as True in the Available View List. Note that the index of the view not always is logical. For to know what is the index of the view what you are in, please use the button *Identify View*, or, in the desired Viewport, use the Button *Set Current as Master*.
-#### Customizable Refresh Rate:
-The Refresh Rate is how often the selected viewports will be updated, the lower the value, the faster they will be updated. 
-Note: As it will make a constant update on Blender Viewport the Gizmos of Move, Rotate and Scale will not work as expected, if you want to use the Transform Gizmos while the *Real-Time Sync* is on choose a higher *Refresh Rate*. 
-#### Auto Master:
-This option when On, will automatically switch the *Master View* index, allowing the user to navigate between the Viewports and Syncing the other ones always.
-#### Set Current View as Master:
-This option will set the *Master View* index based where this button was pressed.
-#### Available Views List:
-The list will be Populated with the Available Views, if the user have other windows with 3D Views they will also be shown in the List.
-#### Identify View:
-This will show a *Text* saying the view index for each 3D View Opened
-#### Refresh List:
-if for any reason nothing is shown in the *Available Views* List, use this button to force the Refresh for the List.
-#### Local View: 
-This is an upgraded operator that works as the default one from Blender, the difference is that it will also set the Selected Objects in Local View mode in all Views at once.
-If the ***Keep Lights***  Boolean is on, this will keep the *Visible Lights* in the scene while Isolating an object.
+A powerful synchronization and analysis toolkit for Blender, designed for multi-monitor setups and complex scene reviewing. Sync navigation, lock specific rotations, or apply artistic shading presets across multiple viewports simultaneously.
 
 ---
-## Sync Options (Dropdown Menu):
 
-These options control what will be updated in the Synced Views.
+## 🚀 What's New
 
-Input Fields:
-- **Adjust View Distance:** It is a multiplier that allows the user control how much ‘zoom’ will have on the controlled Views, this is useful when the aspect ratio of the controlled view is different from the Master View.    
+### **v2.8.1 (Stability & UX Update)**
+- **Smart Session Persistence**: Real-time Sync and Auto Master states are saved in `.blend` files and restored on load.
+- **Global Preferences**: New menu in Addon Preferences to set defaults like "Auto Master ON".
+- **Auto-Refresh System**: View List updates automatically when areas or windows change.
+- **Dynamic Auto Master**: Improved mouse detection for multi-monitor setups.
+- **Performance Optimized**: "Heartbeat" system stops processing when the panel is hidden.
 
-- **Clip Start | End:** Default Blender view clipping - "Clip Start/End adjusts the minimum and maximum distance range to limit the visible range to the area between two planes that are orthogonal to the viewing direction of the viewport camera. Objects outside this range will not be shown." - Blender Manual*    
+### **v2.8.0 (The Extensions Platform Release)**
+- **Shading Presets System**: Apply 10+ specialized visual analysis modes (Silhouette, Zebra, Normals, etc.) to individual viewports.
+- **Smart State Capture**: Viewports remember their original shading/overlays and restore them when a preset is turned off.
+- **Upgraded Local View**: Isolate objects across all active 3D views simultaneously.
+- **GPU Identify System**: Enhanced text overlays to easily identify View IDs in complex layouts.
+- **Multi-Window Support**: Full synchronization support for viewports in separate Blender windows.
 
-- **Focal Length:** Blender's default option - "Control the focal length of the 3D Viewport camera in millimeters, unlike a rendering camera." Blender Manual*    
+---
 
-- **Local View:** This is an upgraded operator that works as the default one from Blender, the difference is that it will also set the Selected Objects in Local View mode in all Views at once.
+## 🛠 View Synchronization Panel
 
-Boolean Buttons:
-- **Distance**: Updates camera distance when true.
-- **Location**: Updates camera location when true.
-- **Rotation**: Updates camera rotation when true.
-- **Camera Zoom**: Updates camera zoom when true.
-- **Camera Offset**: Updates camera offset when true.
-- **Perspective**: Updates view perspective when true.
-- **Clip Start**: Updates view clipping start when true.
-- **Clip End**: Updates view clipping end when true.
-- **Focal Length**: Updates focal length when true.
+### **Core Sync Controls**
+- **Single Match**: Synchronizes all selected views once.
+- **Real-time Sync**: Constantly mirrors navigation (location, rotation, zoom) from the Master View to all selected targets.
+- **Customizable Refresh Rate**: Adjust how often sync updates happen. Higher rates are smoother; lower rates save resources for heavy scenes.
+- **Master View Control**: Choose which viewport is the "Driver". Use the **Identify View** button to see the unique ID of each window.
 
-### Lock Rotation System:
-#### Available Views List:
-The list will be Populated with the Available Views, if the user have other windows with 3D Views they will also be shown in the List.
-	For each view in the list the user is able to lock the desired Viewport in the Predefined Views as: Top, Bottom, Right, Left Front and Back, Camera or the *Matching View* of the *Master Viewport*
-	(same as the default Blender Numerical Pad 1, 3, 7 and etc.) 
-#### Identify View:
-This will show a *Text* saying the view index for each 3D View Opened
-#### Refresh List:
-if for any reason nothing is shown in the *Available Views* List, use this button to force the Refresh for the List.
-### Shading Presets System:
-Each 3D Viewport in the *Available Views* list now has an individual **Shading Preset** selector. This allows you to have different visual analysis modes for each synchronized window.
+### **Advanced Master Logic**
+- **Auto Master**: Automatically switches the "Driver" to whichever viewport your mouse is currently hovering over. Perfect for fluid multi-window workflows.
+- **Set Current as Master**: Instantly promotes the current viewport to be the Driver.
 
-#### Artistic Presets:
-- **Silhouette / Silhouette Inv**: High contrast black & white modes for form analysis.
-- **Random Colors**: Distinguish objects instantly with randomized colors.
-- **Toon (Dark/Light)**: Specialized cel-shading matcaps.
+### **Smart View List**
+- **Window Sections**: Views are organized and stacked by Window ID for clear navigation in multi-monitor setups.
+- **Individual Toggles**: Enable or disable synchronization for each viewport independently.
+- **Shading Presets**: Apply specialized visual modes to specific viewports (e.g., one window in Wireframe, another in Silhouette).
 
-#### Technical Presets:
-- **Topology**: Shows a clean solid view with a high-contrast wireframe overlay.
-- **Normals Check**: Uses a specialized Normal Matcap and Face Orientation overlay.
-- **Zebra (H/V)**: Reflection analysis for surfacing check.
-- **High Detail**: Maximizes Cavity and Outlines for sculpting and detail check.
-- **X-Ray View**: Transparent shading for depth analysis.
+---
 
-#### Smart State Capture:
-The add-on automatically saves the **Original State** of your viewport (shading, overlays, gizmos) before any preset is applied. Selecting **"None"** restores your exact previous configuration, ensuring your work setup is never lost.
+## ⚙️ Sync Options (The "What" to Sync)
+Access these via the **Settings** popover to customize exactly what data is shared between viewports:
+- **Navigation**: Location, Rotation, Distance (Zoom), and Camera Offset.
+- **Camera Data**: Focal Length (Lens), Perspective mode, and Camera Zoom.
+- **Viewport**: Clip Start and Clip End.
+- **Distance Adjust**: A multiplier to offset the zoom level of synced views relative to the Master.
 
+---
 
+## 🔒 Lock Rotation System
+Switch to **Lock View** mode to freeze specific viewports into predefined angles:
+- **Presets**: Top, Bottom, Right, Left, Front, Back, or Camera.
+- **Match Master**: Locks the viewport to follow the Master's current rotation.
+- **Independent Control**: Keep one view locked in "Top View" while navigating freely in another.
+
+---
+
+## 🎨 Shading Presets System
+Analyze your models from multiple perspectives using specialized visual modes:
+
+| Category | Presets | Best Used For... |
+| :--- | :--- | :--- |
+| **Artistic** | Silhouette, Silhouette Inv, Random Colors | Checking big-picture forms, silhouettes, and object separation. |
+| **Technical** | Topology, Normals Check, X-Ray | Verifying edge flow, face orientation, and internal structures. |
+| **Surfacing** | Zebra (H/V), High Detail | Surface continuity (Reflection analysis) and fine sculpt detail. |
+
+> [!TIP]
+> **Smart State Capture**: The addon saves your original viewport settings (shading, overlays, gizmos) before applying a preset. Selecting **"None"** restores your setup exactly as it was.
+
+---
+
+## 📍 Local View (Upgraded)
+An enhanced version of Blender's `/` (Numpad Slash) operator:
+- **Global Isolation**: Isolates selected objects in **all** viewports simultaneously.
+- **Keep Lights**: Option to keep lights visible even when isolating objects, essential for lighting-focused reviews.
+
+---
+
+## 🔧 Global Settings
+Visit `Edit > Preferences > Add-ons > K-Tools View Sync` to:
+- Enable/Disable **Auto Master ON by default**.
+- Manage global addon behaviors.
+
+---
+
+**Developed by Robert Kezives**  
+[Website/Support](https://kezives.gumroad.com/l/Sync-Lock_Viewport)
