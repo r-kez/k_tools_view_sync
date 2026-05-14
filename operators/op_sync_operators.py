@@ -195,6 +195,14 @@ def real_time_sync_update(self, context):
         if not bpy.app.timers.is_registered(real_time_sync_timer):
             bpy.app.timers.register(real_time_sync_timer)
             bpy.ops.view3d.real_time_sync_modal('INVOKE_DEFAULT')
+        
+        # Ensure Auto Master is also active if enabled
+        sync_options = context.scene.sync_options
+        if sync_options.auto_master:
+            try:
+                bpy.ops.view3d.auto_master_modal('INVOKE_DEFAULT')
+            except:
+                pass
     else:
         if bpy.app.timers.is_registered(real_time_sync_timer):
             bpy.app.timers.unregister(real_time_sync_timer)
@@ -452,11 +460,28 @@ def update_view_preset(self, context):
             preset_type = getattr(self, prop_name)
             apply_shading_preset(context, i, preset_type)
 
+## Update View Properties (View Couunt List)
+last_view_count = -1
+last_panel_draw_time = 0.0
+
+def mark_panel_as_visible():
+    """Call this from panel draw to signal the timer that it's active"""
+    global last_panel_draw_time
+    last_panel_draw_time = time.time()
+
 def update_view_properties(self, context):
+    global last_view_count
+    
     # Get ALL views from ALL windows
     view3d_areas = [area for window in bpy.context.window_manager.windows 
                     for area in window.screen.areas if area.type == 'VIEW_3D']
     view3d_count = len(view3d_areas)
+
+    # Only update if the count has changed
+    if view3d_count == last_view_count:
+        return
+    
+    last_view_count = view3d_count
 
     # Clean up old properties
     for i in range(view3d_count, 20):  # Reasonable limit

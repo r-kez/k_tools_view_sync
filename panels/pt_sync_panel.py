@@ -1,4 +1,5 @@
 import bpy
+from ..operators.op_sync_operators import mark_panel_as_visible
 
 
 viewport_states = {}  
@@ -6,6 +7,7 @@ viewport_states = {}
 
 class KT_PT_SyncPanel:
     def draw(self, context, layout):
+        mark_panel_as_visible()
         scene = context.scene
         sync_options = scene.sync_options
 
@@ -57,15 +59,14 @@ class KT_PT_SyncPanel:
             window_views[window_index].append((global_view_index, area))
             global_view_index += 1
 
-        # Create grid inside box
-        grid = box.grid_flow(columns=len(window_views), even_columns=True, even_rows=False)
-        for window_index, areas in window_views.items():
-            col = grid.column()
-            col.label(text=f"Window {window_index}")
+        # Create sections for each window, stacked vertically
+        for window_index, areas in window_views.items():                
+            win_col = box.column(align=True)
+            win_col.label(text=f"Window {window_index}", icon='WINDOW')
 
             for view_index, area in areas:
                 if hasattr(scene, f"sync_view_{view_index}"):
-                    row = col.row(align=True)
+                    row = win_col.row(align=True)
                     row.prop(
                         scene,
                         f"sync_view_{view_index}",
@@ -88,6 +89,7 @@ class KT_VIEW3D_PT_sync_options(bpy.types.Panel):
         layout.label(text="", icon="OPTIONS")
 
     def draw(self, context):
+        mark_panel_as_visible()
         layout = self.layout
         scene = context.scene
         sync_options = scene.sync_options
@@ -107,6 +109,7 @@ class KT_VIEW3D_PT_sync_options(bpy.types.Panel):
         
         use_toggle = {"toggle": False}
                 
+        box.label(text='What will be synchronized:')
         grid = box.grid_flow(row_major=False, columns=2, align=True)         
         grid.prop(sync_options, "sync_view_distance", text='Distance', **use_toggle)
         grid.prop(sync_options, "sync_view_location", text='Location', **use_toggle)
