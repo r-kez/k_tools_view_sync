@@ -16,6 +16,7 @@ class KT_PT_LockPanel:
         # Camera Pan Controls
         col.prop(sync_options, "enable_camera_pan", text="Enable Camera Pan", toggle=True)
         col.prop(sync_options, "enable_pan_on_lock", text="Enable Pan on Lock", toggle=True)
+        col.prop(sync_options, "auto_lock_ortho", text="Auto Lock Ortho", toggle=True)
 
         # --- Available Views Box ---
         col.separator()

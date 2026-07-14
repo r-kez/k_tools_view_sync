@@ -75,6 +75,64 @@ class KT_PT_SyncPanel:
                     )
                     row.prop(scene, f"sync_view_preset_{view_index}", text="")
 
+        # --- 2D Editors Sync ---
+        col.separator()
+        box_2d = layout.box()
+        box_2d.label(text="2D Editors Sync", icon='TIME')
+        
+        row = box_2d.row(align=True)
+        row.prop(sync_options, "sync_2d_editors", text="Sync 2D Editors", toggle=True)
+        
+        if sync_options.sync_2d_editors:
+            row = box_2d.row(align=True)
+            row.prop(sync_options, "sync_2d_horizontal", text="Horizontal (Time)", toggle=True)
+            
+            row = box_2d.row(align=True)
+            row.prop(sync_options, "master_2d_view_index", text="Master 2D View")
+
+            # List available 2D views
+            box_2d.label(text="Available 2D Views:")
+            
+            allowed_2d_types = {'DOPESHEET_EDITOR', 'GRAPH_EDITOR', 'NLA_EDITOR'}
+            view2d_areas = [
+                (window_index, area)
+                for window_index, window in enumerate(windows)
+                for area in window.screen.areas if area.type in allowed_2d_types
+            ]
+            
+            window_2d_views = {}
+            global_2d_view_index = 0
+            for window_index, area in view2d_areas:
+                if window_index not in window_2d_views:
+                    window_2d_views[window_index] = []
+                window_2d_views[window_index].append((global_2d_view_index, area))
+                global_2d_view_index += 1
+                
+            for window_index, areas in window_2d_views.items():
+                win_2d_col = box_2d.column(align=True)
+                win_2d_col.label(text=f"Window {window_index}", icon='WINDOW')
+                
+                for view_index, area in areas:
+                    if hasattr(scene, f"sync_2d_view_{view_index}"):
+                        row = win_2d_col.row(align=True)
+                        
+                        # Get a nice icon and name for the 2D editor type
+                        editor_icon = 'ACTION'
+                        editor_name = "Dopesheet"
+                        if area.type == 'GRAPH_EDITOR':
+                            editor_icon = 'GRAPH'
+                            editor_name = "Graph Editor"
+                        elif area.type == 'NLA_EDITOR':
+                            editor_icon = 'NLA'
+                            editor_name = "NLA Editor"
+                        
+                        row.prop(
+                            scene,
+                            f"sync_2d_view_{view_index}",
+                            text=f"{editor_name} {view_index}",
+                            icon=editor_icon if getattr(scene, f"sync_2d_view_{view_index}") else 'LOCKVIEW_OFF'
+                        )
+
 
 
 class KT_VIEW3D_PT_sync_options(bpy.types.Panel):
@@ -93,16 +151,24 @@ class KT_VIEW3D_PT_sync_options(bpy.types.Panel):
         layout = self.layout
         scene = context.scene
         sync_options = scene.sync_options
+        
         view = context.space_data
+        if not view or view.type != 'VIEW_3D':
+            area = next((a for a in context.screen.areas if a.type == 'VIEW_3D'), None)
+            if area:
+                view = area.spaces.active
+            else:
+                view = None
 
         box = layout.box()
         box.label(text='View Sync Options:') 
 
-        grid = box.grid_flow(row_major=False, columns=1, align=True)         
-        # View Clipping
-        grid.prop(view, "clip_start", text="Clip Start:")
-        grid.prop(view, "clip_end", text="Clip End:")     
-        grid.prop(view, "lens", text="Focal Length:")  
+        if view:
+            grid = box.grid_flow(row_major=False, columns=1, align=True)         
+            # View Clipping
+            grid.prop(view, "clip_start", text="Clip Start:")
+            grid.prop(view, "clip_end", text="Clip End:")     
+            grid.prop(view, "lens", text="Focal Length:")  
 
         grid = box.grid_flow(row_major=False, columns=2, align=True)
         grid.prop(sync_options, "sync_view_distance_adjust", text='Distance Adjust:')  
@@ -122,4 +188,6 @@ class KT_VIEW3D_PT_sync_options(bpy.types.Panel):
         grid.prop(sync_options, "sync_focal_length", text='Focal Length', **use_toggle)
 
         box.label(text='Local View:')
-        box.prop(sync_options, "dont_exclude_lights", text="Keep Lights when in Local View", **use_toggle)
+        from ..preferences import get_preferences
+        prefs = get_preferences(context)
+        box.prop(prefs, "dont_exclude_lights", text="Keep Lights when in Local View", **use_toggle)

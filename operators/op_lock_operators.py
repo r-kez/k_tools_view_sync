@@ -6,12 +6,12 @@ from bpy.props import EnumProperty, IntProperty
 
 # **********************************************
 class KT_LockRotationProps(bpy.types.PropertyGroup):
-    lock_rotation: bpy.props.BoolProperty(
+    lock_rotation: bpy.props.BoolProperty( # type: ignore
         name="Lock Rotation", 
         default=False, 
         update=lambda self, 
         context: update_lock_rotation(self, context)
-        ) # type: ignore
+        )
 
 def set_lock_rotation(area, value):
     if area.type == 'VIEW_3D':
@@ -440,7 +440,7 @@ class KT_VIEW3D_OT_lock_view_preset(Operator):
     bl_idname = "view3d.lock_view_preset"
     bl_label = "Lock View Preset"
     
-    preset: EnumProperty(
+    preset: EnumProperty(# type: ignore
         items=[
             ('TOP', "Top", "Lock view from top", 'VIEW_TOP', 0),
             ('BOTTOM', "Bottom", "Lock view from bottom", 'VIEW_BOTTOM', 1),
@@ -567,10 +567,21 @@ class KT_VIEW3D_OT_smart_pan(Operator):
         scene = context.scene
         props = scene.sync_options
         
-        # Priority 1: Check if rotation is locked and lock pan is enabled
-        if (hasattr(context.region_data, 'lock_rotation') and 
-            context.region_data.lock_rotation and 
-            props.enable_pan_on_lock):
+        is_locked = hasattr(context.region_data, 'lock_rotation') and context.region_data.lock_rotation
+        
+        # Priority 1: Check if rotation is locked and lock pan is enabled, OR if auto lock ortho is active and we are in an axis-aligned ortho view
+        should_pan_on_lock = is_locked and (props.enable_pan_on_lock or props.auto_lock_ortho)
+        
+        should_pan_on_ortho = False
+        if props.auto_lock_ortho and context.region_data.view_perspective == 'ORTHO':
+            import mathutils
+            view_dir = context.region_data.view_rotation @ mathutils.Vector((0.0, 0.0, -1.0))
+            limit = 0.9999
+            is_aligned = (abs(view_dir.x) > limit or abs(view_dir.y) > limit or abs(view_dir.z) > limit)
+            if is_aligned:
+                should_pan_on_ortho = True
+                
+        if should_pan_on_lock or should_pan_on_ortho:
             bpy.ops.view3d.move('INVOKE_DEFAULT')
             return {'FINISHED'}
         
@@ -581,12 +592,212 @@ class KT_VIEW3D_OT_smart_pan(Operator):
             return {'FINISHED'}
         
         # Default: Normal rotation (if not locked)
-        if not (hasattr(context.region_data, 'lock_rotation') and context.region_data.lock_rotation):
+        if not is_locked:
             bpy.ops.view3d.rotate('INVOKE_DEFAULT')
         
         return {'FINISHED'}
-##
-##
+
+# * * * * * * * * * * * * * * * * * * * * * * * * *
+# GPU OVERLAY INDICATOR FOR LOCKED VIEWPORTS
+# * * * * * * * * * * * * * * * * * * * * * * * * *
+
+_lock_hud_handler = None
+
+def draw_rounded_rect(x, y, w, h, r, color):
+    import math
+    import gpu
+    from gpu_extras.batch import batch_for_shader
+    
+    steps = 8
+    vertices = []
+    
+    # Bottom Left Corner
+    for i in range(steps + 1):
+        angle = math.pi + (math.pi / 2) * i / steps
+        vertices.append((x + r + r * math.cos(angle), y + r + r * math.sin(angle)))
+    # Bottom Right Corner
+    for i in range(steps + 1):
+        angle = math.pi * 1.5 + (math.pi / 2) * i / steps
+        vertices.append((x + w - r + r * math.cos(angle), y + r + r * math.sin(angle)))
+    # Top Right Corner
+    for i in range(steps + 1):
+        angle = 0.0 + (math.pi / 2) * i / steps
+        vertices.append((x + w - r + r * math.cos(angle), y + h - r + r * math.sin(angle)))
+    # Top Left Corner
+    for i in range(steps + 1):
+        angle = math.pi / 2 + (math.pi / 2) * i / steps
+        vertices.append((x + r + r * math.cos(angle), y + h - r + r * math.sin(angle)))
+        
+    indices = []
+    center_x = x + w / 2
+    center_y = y + h / 2
+    vertices.append((center_x, center_y))
+    center_idx = len(vertices) - 1
+    
+    for i in range(center_idx):
+        next_i = (i + 1) % center_idx
+        indices.append((center_idx, i, next_i))
+        
+    shader = gpu.shader.from_builtin('UNIFORM_COLOR')
+    batch = batch_for_shader(shader, 'TRIS', {"pos": vertices}, indices=indices)
+    
+    shader.bind()
+    shader.uniform_float("color", color)
+    batch.draw(shader)
+
+def draw_rounded_outline(x, y, w, h, r, color, thickness=1.0):
+    import math
+    import gpu
+    from gpu_extras.batch import batch_for_shader
+    
+    steps = 8
+    vertices = []
+    
+    # Generate border vertices
+    for i in range(steps + 1):
+        angle = math.pi + (math.pi / 2) * i / steps
+        vertices.append((x + r + r * math.cos(angle), y + r + r * math.sin(angle)))
+    for i in range(steps + 1):
+        angle = math.pi * 1.5 + (math.pi / 2) * i / steps
+        vertices.append((x + w - r + r * math.cos(angle), y + r + r * math.sin(angle)))
+    for i in range(steps + 1):
+        angle = 0.0 + (math.pi / 2) * i / steps
+        vertices.append((x + w - r + r * math.cos(angle), y + h - r + r * math.sin(angle)))
+    for i in range(steps + 1):
+        angle = math.pi / 2 + (math.pi / 2) * i / steps
+        vertices.append((x + r + r * math.cos(angle), y + h - r + r * math.sin(angle)))
+    # Close path
+    vertices.append(vertices[0])
+        
+    try:
+        gpu.state.line_width_set(thickness)
+    except:
+        pass
+    shader = gpu.shader.from_builtin('UNIFORM_COLOR')
+    batch = batch_for_shader(shader, 'LINE_STRIP', {"pos": vertices})
+    
+    shader.bind()
+    shader.uniform_float("color", color)
+    batch.draw(shader)
+
+def draw_lock_hud_callback():
+    context = bpy.context
+    if not context or not hasattr(context, "scene") or not context.scene:
+        return
+        
+    # Check preferences toggle
+    try:
+        from ..preferences import get_preferences
+        prefs = get_preferences(context)
+        if not prefs or not prefs.show_lock_hud:
+            return
+    except Exception as e:
+        return
+
+    # Only draw in 3D Viewport
+    if not context.area or context.area.type != 'VIEW_3D':
+        return
+        
+    region = context.region
+    region_3d = context.space_data.region_3d if context.space_data and hasattr(context.space_data, 'region_3d') else None
+    if not region_3d:
+        return
+
+    # Check lock states
+    is_rotation_locked = hasattr(region_3d, 'lock_rotation') and region_3d.lock_rotation
+    
+    props = context.scene.sync_options
+    is_auto_ortho_locked = False
+    if props.auto_lock_ortho and region_3d.view_perspective == 'ORTHO':
+        import mathutils
+        view_dir = region_3d.view_rotation @ mathutils.Vector((0.0, 0.0, -1.0))
+        limit = 0.9999
+        is_aligned = (abs(view_dir.x) > limit or abs(view_dir.y) > limit or abs(view_dir.z) > limit)
+        if is_aligned:
+            is_auto_ortho_locked = True
+
+    # If neither is locked, do not draw
+    if not is_rotation_locked and not is_auto_ortho_locked:
+        return
+
+    # Colors (SLM Style: Dark Blue-Grey Slate with Cyan/Orange Accent)
+    bg_color = (0.08, 0.09, 0.11, 0.90)
+    border_color = (1.0, 1.0, 1.0, 0.08)
+    accent_color = (0.0, 0.7, 1.0, 1.0) if is_auto_ortho_locked else (1.0, 0.6, 0.0, 1.0)
+    text_color = (0.95, 0.95, 0.95, 1.0)
+    tag_color = (0.0, 0.7, 1.0, 0.15) if is_auto_ortho_locked else (1.0, 0.6, 0.0, 0.15)
+    
+    import blf
+    font_id = 0
+    blf.size(font_id, 11)
+    
+    lock_label = "VIEW ROTATION LOCKED"
+    lock_tag = "AUTO-LOCK" if is_auto_ortho_locked else "LOCKED"
+    
+    label_w, label_h = blf.dimensions(font_id, lock_label)
+    tag_w, tag_h = blf.dimensions(font_id, lock_tag)
+    
+    padding_x = 12
+    padding_y = 7
+    bar_width = 3
+    tag_padding_x = 6
+    tag_padding_y = 3
+    
+    card_h = label_h + padding_y * 2
+    card_w = bar_width + padding_x * 2 + label_w + 10 + tag_w + tag_padding_x * 2
+    
+    # Position (Center bottom)
+    width = region.width
+    x = (width - card_w) / 2
+    y = 15
+    
+    import gpu
+    gpu.state.blend_set('ALPHA')
+    
+    # Draw background container
+    draw_rounded_rect(x, y, card_w, card_h, 6, bg_color)
+    
+    # Draw left indicator accent bar
+    draw_rounded_rect(x + 2, y + 2, bar_width, card_h - 4, 1.5, accent_color)
+    
+    # Draw tag background
+    tag_x = x + bar_width + padding_x + label_w + 10
+    tag_y = y + (card_h - (tag_h + tag_padding_y * 2)) / 2
+    draw_rounded_rect(tag_x, tag_y, tag_w + tag_padding_x * 2, tag_h + tag_padding_y * 2, 4, tag_color)
+    
+    # Draw border outline
+    draw_rounded_outline(x, y, card_w, card_h, 6, border_color, 1.0)
+    
+    # Draw main label
+    text_y = y + padding_y - 1
+    blf.color(font_id, text_color[0], text_color[1], text_color[2], text_color[3])
+    blf.position(font_id, x + bar_width + padding_x, text_y, 0)
+    blf.draw(font_id, lock_label)
+    
+    # Draw tag label
+    tag_text_x = tag_x + tag_padding_x
+    tag_text_y = tag_y + tag_padding_y - 1
+    blf.color(font_id, accent_color[0], accent_color[1], accent_color[2], accent_color[3])
+    blf.position(font_id, tag_text_x, tag_text_y, 0)
+    blf.draw(font_id, lock_tag)
+    
+    gpu.state.blend_set('NONE')
+
+def register_lock_hud():
+    global _lock_hud_handler
+    if _lock_hud_handler is None:
+        _lock_hud_handler = bpy.types.SpaceView3D.draw_handler_add(
+            draw_lock_hud_callback, (), 'WINDOW', 'POST_PIXEL'
+        )
+
+def unregister_lock_hud():
+    global _lock_hud_handler
+    if _lock_hud_handler is not None:
+        try:
+            bpy.types.SpaceView3D.draw_handler_remove(_lock_hud_handler, 'WINDOW')
+        except:
+            pass
+        _lock_hud_handler = None
 
 classes = ( 
             KT_CameraViewToggleGizmo,

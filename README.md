@@ -8,83 +8,35 @@ A powerful synchronization and analysis toolkit for Blender, designed for multi-
 
 ## 🚀 What's New
 
-### **v2.8.1 (Stability & UX Update)**
-- **Smart Session Persistence**: Real-time Sync and Auto Master states are saved in `.blend` files and restored on load.
-- **Global Preferences**: New menu in Addon Preferences to set defaults like "Auto Master ON".
-- **Auto-Refresh System**: View List updates automatically when areas or windows change.
-- **Dynamic Auto Master**: Improved mouse detection for multi-monitor setups.
-- **Performance Optimized**: "Heartbeat" system stops processing when the panel is hidden.
-
-### **v2.8.0 (The Extensions Platform Release)**
-- **Shading Presets System**: Apply 10+ specialized visual analysis modes (Silhouette, Zebra, Normals, etc.) to individual viewports.
-- **Smart State Capture**: Viewports remember their original shading/overlays and restore them when a preset is turned off.
-- **Upgraded Local View**: Isolate objects across all active 3D views simultaneously.
-- **GPU Identify System**: Enhanced text overlays to easily identify View IDs in complex layouts.
-- **Multi-Window Support**: Full synchronization support for viewports in separate Blender windows.
+### **v2.9.0 (Auto Lock Ortho Update)**
+- **Auto Lock Ortho**: Automatically locks middle-mouse rotation into panning when you are in a standard orthographic axis-aligned view.
+- **Default Preference**: Configure whether Auto Lock Ortho starts enabled automatically under Add-on Preferences.
 
 ---
 
-## 🛠 View Synchronization Panel
+## 📖 Wiki & Documentation
 
-### **Core Sync Controls**
-- **Single Match**: Synchronizes all selected views once.
-- **Real-time Sync**: Constantly mirrors navigation (location, rotation, zoom) from the Master View to all selected targets.
-- **Customizable Refresh Rate**: Adjust how often sync updates happen. Higher rates are smoother; lower rates save resources for heavy scenes.
-- **Master View Control**: Choose which viewport is the "Driver". Use the **Identify View** button to see the unique ID of each window.
+We have organized the features and guides into separate documentation files for the end-user. Click on any topic below to learn more:
 
-### **Advanced Master Logic**
-- **Auto Master**: Automatically switches the "Driver" to whichever viewport your mouse is currently hovering over. Perfect for fluid multi-window workflows.
-- **Set Current as Master**: Instantly promotes the current viewport to be the Driver.
+1. **[View Synchronization](wiki/view_synchronization.md)**
+   - Sync navigation (Location, Rotation, Zoom), camera attributes (Focal Length, Lens, Offset), and clip settings across different viewports and separate windows.
+   - Use **Auto Master** to dynamically swap the driver viewport by simply hovering your mouse cursor over it.
 
-### **Smart View List**
-- **Window Sections**: Views are organized and stacked by Window ID for clear navigation in multi-monitor setups.
-- **Individual Toggles**: Enable or disable synchronization for each viewport independently.
-- **Shading Presets**: Apply specialized visual modes to specific viewports (e.g., one window in Wireframe, another in Silhouette).
+2. **[Lock Rotation & Auto Lock Ortho](wiki/lock_rotation.md)**
+   - Lock viewport rotation to top, bottom, front, back, right, left, or camera.
+   - Use **Auto Lock Ortho** to automatically switch Middle Mouse drag behavior to **panning** in aligned flat views while keeping standard view keys (Numpad) functional.
 
----
+3. **[Shading Presets System](wiki/shading_presets.md)**
+   - Apply 10+ specialized visual presets (Silhouette, Zebra, Topology, Normals, Clay) to individual viewports to check mesh flow, surfaces, and forms.
+   - Automatically restore original viewport styles when disabling presets.
 
-## ⚙️ Sync Options (The "What" to Sync)
-Access these via the **Settings** popover to customize exactly what data is shared between viewports:
-- **Navigation**: Location, Rotation, Distance (Zoom), and Camera Offset.
-- **Camera Data**: Focal Length (Lens), Perspective mode, and Camera Zoom.
-- **Viewport**: Clip Start and Clip End.
-- **Distance Adjust**: A multiplier to offset the zoom level of synced views relative to the Master.
+4. **[Upgraded Local View](wiki/local_view.md)**
+   - Isolate selected objects globally in all open viewports at once.
+   - Keep scene lights visible during isolation to keep lighting contexts clear.
 
----
-
-## 🔒 Lock Rotation System
-Switch to **Lock View** mode to freeze specific viewports into predefined angles:
-- **Presets**: Top, Bottom, Right, Left, Front, Back, or Camera.
-- **Match Master**: Locks the viewport to follow the Master's current rotation.
-- **Independent Control**: Keep one view locked in "Top View" while navigating freely in another.
-
----
-
-## 🎨 Shading Presets System
-Analyze your models from multiple perspectives using specialized visual modes:
-
-| Category | Presets | Best Used For... |
-| :--- | :--- | :--- |
-| **Artistic** | Silhouette, Silhouette Inv, Random Colors | Checking big-picture forms, silhouettes, and object separation. |
-| **Technical** | Topology, Normals Check, X-Ray | Verifying edge flow, face orientation, and internal structures. |
-| **Surfacing** | Zebra (H/V), High Detail | Surface continuity (Reflection analysis) and fine sculpt detail. |
-
-> [!TIP]
-> **Smart State Capture**: The addon saves your original viewport settings (shading, overlays, gizmos) before applying a preset. Selecting **"None"** restores your setup exactly as it was.
-
----
-
-## 📍 Local View (Upgraded)
-An enhanced version of Blender's `/` (Numpad Slash) operator:
-- **Global Isolation**: Isolates selected objects in **all** viewports simultaneously.
-- **Keep Lights**: Option to keep lights visible even when isolating objects, essential for lighting-focused reviews.
-
----
-
-## 🔧 Global Settings
-Visit `Edit > Preferences > Add-ons > K-Tools View Sync` to:
-- Enable/Disable **Auto Master ON by default**.
-- Manage global addon behaviors.
+5. **[Global Settings & Customization](wiki/global_settings.md)**
+   - Detailed settings for fine-tuning viewport synchronizations.
+   - Session persistence and global preferences defaults.
 
 ---
 

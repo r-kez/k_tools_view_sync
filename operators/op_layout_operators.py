@@ -100,7 +100,51 @@ class KT_OT_close_analytic_sessions(bpy.types.Operator):
             bpy.data.workspaces.remove(ws)
         return {'FINISHED'}
 
+class KT_VIEW3D_OT_call_sync_lock_popup(bpy.types.Operator):
+    """Open a floating popup dialog for K-Tools View Sync"""
+    bl_idname = "view3d.call_sync_lock_popup"
+    bl_label = "K-Tools View Sync Menu"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    def draw(self, context):
+        layout = self.layout
+        
+        # Add spacing at the top of the popup
+        layout.separator(factor=1.2)
+        
+        scene = context.scene
+        sync_options = scene.sync_options
+        mode = sync_options.addon_mode
+
+        row = layout.row()
+        row.scale_y = 1.25
+        row.prop(sync_options, "addon_mode", expand=True)
+
+        row = layout.row(align=False)
+        row.scale_y = 0.32
+        row.alert = True
+        row.alignment = "CENTER"
+        row.label(text='———————————')
+        row.alert = False
+
+        if mode == 'SYNC_VIEW':
+            row = layout.row()
+            row.popover(panel="KT_VIEW3D_PT_sync_options", text="Settings")            
+            from ..panels.pt_sync_panel import KT_PT_SyncPanel
+            KT_PT_SyncPanel().draw(context, layout)
+        elif mode == 'LOCK_VIEW':
+            from ..panels.pt_lock_panel import KT_PT_LockPanel
+            KT_PT_LockPanel().draw(context, layout)
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_popup(self, width=280)
+        return {'RUNNING_MODAL'}
+
 classes = (
     KT_OT_create_analytic_window,
     KT_OT_close_analytic_sessions,
+    KT_VIEW3D_OT_call_sync_lock_popup,
 )

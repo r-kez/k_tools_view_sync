@@ -129,11 +129,6 @@ class KT_SyncOptions(PropertyGroup):
         description="Fine adjustment (Multiplier) for Sync View Distance"
     )   # type: ignore
 
-    dont_exclude_lights: bpy.props.BoolProperty( # type: ignore
-        name="Don't Hide Lights", 
-        default=True,
-        description="Keep lights visible when using Local View"
-    )   # type: ignore
 
 ## LOCK
     enable_camera_pan: BoolProperty( # type: ignore
@@ -146,6 +141,32 @@ class KT_SyncOptions(PropertyGroup):
         description="Enable panning with middle mouse when View Rotation is locked",
         default=False
     )   # type: ignore
+    auto_lock_ortho: BoolProperty( # type: ignore
+        name="Auto Lock Ortho",
+        description="Automatically lock view rotation when entering Orthographic view in X, Y, Z axes",
+        default=False
+    )   # type: ignore
+
+    # --- 2D Editor Sync Properties ---
+    master_2d_view_index: IntProperty( # type: ignore
+        name="Master 2D View Index",
+        description="Index of the master 2D view",
+        default=0,
+        min=0
+    ) # type: ignore
+    
+    sync_2d_editors: BoolProperty( # type: ignore
+        name="Sync 2D Editors",
+        description="Sync 2D animation editors (Timeline, Dopesheet, Graph Editor, NLA)",
+        default=True
+    ) # type: ignore
+    
+    sync_2d_horizontal: BoolProperty( # type: ignore
+        name="Horizontal (Time)",
+        description="Sync horizontal pan and zoom (Time axis)",
+        default=True
+    ) # type: ignore
+
 
 classes = (  
     KT_SyncOptions,      

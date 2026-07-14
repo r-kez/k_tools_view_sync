@@ -59,27 +59,48 @@ class KT_VIEW3D_OT_auto_master_modal(Operator):
                     if found_area: break
 
             # If we found a 3D area under the mouse
-            if found_area and found_area.type == 'VIEW_3D' and found_area != last_active_area:
-                last_active_area = found_area
-                active_viewport_id = f"View ID: {found_area.as_pointer()} (Window: {found_window.screen.name})"
+            allowed_2d_types = {'DOPESHEET_EDITOR', 'GRAPH_EDITOR', 'NLA_EDITOR'}
+            if found_area and found_area != last_active_area:
+                if found_area.type == 'VIEW_3D':
+                    last_active_area = found_area
+                    active_viewport_id = f"View ID: {found_area.as_pointer()} (Window: {found_window.screen.name})"
 
-                # Calculate the global index across all windows
-                correct_global_index = 0
-                found_match = False
-                
-                for w in context.window_manager.windows:
-                    for a in w.screen.areas:
-                        if a.type == 'VIEW_3D':
-                            if a.as_pointer() == found_area.as_pointer():
-                                # Update index without toggling real_time_sync 
-                                # to avoid spawning multiple sync modals
-                                sync_options.master_view_index = correct_global_index
-                                found_area.tag_redraw()
-                                found_match = True
-                                break
-                            correct_global_index += 1
-                    if found_match:
-                        break
+                    # Calculate the global index across all windows
+                    correct_global_index = 0
+                    found_match = False
+                    
+                    for w in context.window_manager.windows:
+                        for a in w.screen.areas:
+                            if a.type == 'VIEW_3D':
+                                if a.as_pointer() == found_area.as_pointer():
+                                    # Update index without toggling real_time_sync 
+                                    # to avoid spawning multiple sync modals
+                                    sync_options.master_view_index = correct_global_index
+                                    found_area.tag_redraw()
+                                    found_match = True
+                                    break
+                                correct_global_index += 1
+                        if found_match:
+                            break
+                elif found_area.type in allowed_2d_types:
+                    last_active_area = found_area
+                    active_viewport_id = f"View ID: {found_area.as_pointer()} (Window: {found_window.screen.name})"
+
+                    # Calculate the global index across all windows for 2D areas
+                    correct_global_index = 0
+                    found_match = False
+                    
+                    for w in context.window_manager.windows:
+                        for a in w.screen.areas:
+                            if a.type in allowed_2d_types:
+                                if a.as_pointer() == found_area.as_pointer():
+                                    sync_options.master_2d_view_index = correct_global_index
+                                    found_area.tag_redraw()
+                                    found_match = True
+                                    break
+                                correct_global_index += 1
+                        if found_match:
+                            break
 
         # Handle direct viewport interaction (clicks)
         if event.type in {'LEFTMOUSE', 'RIGHTMOUSE', 'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
@@ -91,7 +112,8 @@ class KT_VIEW3D_OT_auto_master_modal(Operator):
                     click_area = area
                     break
             
-            if click_area and click_area.type == 'VIEW_3D':
+            allowed_all_types = {'VIEW_3D', 'DOPESHEET_EDITOR', 'GRAPH_EDITOR', 'NLA_EDITOR'}
+            if click_area and click_area.type in allowed_all_types:
                 # Update ID for visual feedback
                 window_name = context.window.screen.name
                 active_viewport_id = f"View ID: {click_area.as_pointer()} (Window: {window_name})"
@@ -150,29 +172,50 @@ class KT_VIEW3D_OT_set_current_as_master(Operator):
         try:
             # Get current view index
             active_area = context.area
-            if not active_area or active_area.type != 'VIEW_3D':
-                self.report({'WARNING'}, "Not in a 3D View")
-                return {'CANCELLED'}
-
-            # Calculate current view index
-            view3d_count = 0
-            current_index = -1
+            allowed_2d_types = {'DOPESHEET_EDITOR', 'GRAPH_EDITOR', 'NLA_EDITOR'}
             
-            for window in context.window_manager.windows:
-                for area in window.screen.areas:
-                    if area.type == 'VIEW_3D':
-                        if area == active_area:
-                            current_index = view3d_count
-                        view3d_count += 1
-
-            if current_index == -1:
-                self.report({'WARNING'}, "Couldn't determine view index")
+            if not active_area or (active_area.type != 'VIEW_3D' and active_area.type not in allowed_2d_types):
+                self.report({'WARNING'}, "Not in a supported editor (3D View, Timeline, Dopesheet, NLA, Graph Editor)")
                 return {'CANCELLED'}
 
-            # Set new master index
-            sync_options.master_view_index = current_index
+            if active_area.type == 'VIEW_3D':
+                # Calculate current view index
+                view3d_count = 0
+                current_index = -1
+                
+                for window in context.window_manager.windows:
+                    for area in window.screen.areas:
+                        if area.type == 'VIEW_3D':
+                            if area == active_area:
+                                current_index = view3d_count
+                            view3d_count += 1
 
-            self.report({'INFO'}, f"Set master to view {current_index}")
+                if current_index == -1:
+                    self.report({'WARNING'}, "Couldn't determine view index")
+                    return {'CANCELLED'}
+
+                # Set new master index
+                sync_options.master_view_index = current_index
+                self.report({'INFO'}, f"Set master to view {current_index}")
+            else:
+                # Calculate current 2D view index
+                view2d_count = 0
+                current_index = -1
+                
+                for window in context.window_manager.windows:
+                    for area in window.screen.areas:
+                        if area.type in allowed_2d_types:
+                            if area == active_area:
+                                current_index = view2d_count
+                            view2d_count += 1
+
+                if current_index == -1:
+                    self.report({'WARNING'}, "Couldn't determine 2D view index")
+                    return {'CANCELLED'}
+
+                # Set new master index
+                sync_options.master_2d_view_index = current_index
+                self.report({'INFO'}, f"Set master 2D view to index {current_index}")
             
             # Force UI update
             for area in context.screen.areas:

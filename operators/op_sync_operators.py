@@ -26,60 +26,75 @@ class KT_VIEW3D_OT_sync_views(Operator):
 def sync_views(context):
     scene = context.scene
     sync_options = scene.sync_options
+    
+    # 3D views sync
     view3d_areas = [(window_index, area)
         for window_index, window in enumerate(bpy.context.window_manager.windows)
         for area in window.screen.areas if area.type == 'VIEW_3D']
 
     master_index = sync_options.master_view_index
-    if master_index >= len(view3d_areas):
-        return
+    if master_index < len(view3d_areas):
+        bpy.ops.view3d.update_view_count() # Force update view count
 
-    bpy.ops.view3d.update_view_count() # Force update view count, this will automatically sync the views as now the Booleans are defined as True since it's creation
+        _, master_area = view3d_areas[master_index]
+        master_space = master_area.spaces.active
+        master_region = master_space.region_3d
 
-    _, master_area = view3d_areas[master_index]
-    master_space = master_area.spaces.active
-    master_region = master_space.region_3d
+        # Don't sync from a locked master view
+        if not master_region.lock_rotation:
+            for i, (_, area) in enumerate(view3d_areas):
+                if i != master_index and getattr(scene, f"sync_view_{i}", False):
+                    space = area.spaces.active
+                    region = space.region_3d
 
-    # Don't sync from a locked master view
-    if master_region.lock_rotation:
-        return
+                    # Sync properties (even to locked views)
+                    if sync_options.sync_view_distance:
+                        region.view_distance = master_region.view_distance * sync_options.sync_view_distance_adjust
+                    
+                    if sync_options.sync_view_location:
+                        region.view_location = master_region.view_location
+                    
+                    if sync_options.sync_view_rotation:
+                        region.view_rotation = master_region.view_rotation
+                    
+                    if sync_options.sync_camera_zoom:
+                        region.view_camera_zoom = master_region.view_camera_zoom
+                    
+                    if sync_options.sync_camera_offset:
+                        region.view_camera_offset = master_region.view_camera_offset
+                    
+                    if sync_options.sync_view_perspective:
+                        region.view_perspective = master_region.view_perspective
+                    
+                    if sync_options.sync_clip_start:
+                        space.clip_start = master_space.clip_start
+                    
+                    if sync_options.sync_clip_end:
+                        space.clip_end = master_space.clip_end
+                    
+                    if sync_options.sync_focal_length:
+                        space.lens = master_space.lens
 
-    for i, (_, area) in enumerate(view3d_areas):
-        if i != master_index and getattr(scene, f"sync_view_{i}", False):
+                    # Force view update
+                    area.tag_redraw()
+
+    # 2D views sync
+    if sync_options.sync_2d_editors:
+        allowed_2d_types = {'DOPESHEET_EDITOR', 'GRAPH_EDITOR', 'NLA_EDITOR'}
+        view2d_areas = [area for window in context.window_manager.windows 
+                        for area in window.screen.areas if area.type in allowed_2d_types]
+        
+        master_2d_index = sync_options.master_2d_view_index
+        
+        # Update show_locked_time dynamically based on sync_2d_horizontal
+        for idx, area in enumerate(view2d_areas):
             space = area.spaces.active
-            region = space.region_3d
-
-            # Sync properties (even to locked views)
-            if sync_options.sync_view_distance:
-                region.view_distance = master_region.view_distance * sync_options.sync_view_distance_adjust
-            
-            if sync_options.sync_view_location:
-                region.view_location = master_region.view_location
-            
-            if sync_options.sync_view_rotation:
-                region.view_rotation = master_region.view_rotation
-            
-            if sync_options.sync_camera_zoom:
-                region.view_camera_zoom = master_region.view_camera_zoom
-            
-            if sync_options.sync_camera_offset:
-                region.view_camera_offset = master_region.view_camera_offset
-            
-            if sync_options.sync_view_perspective:
-                region.view_perspective = master_region.view_perspective
-            
-            if sync_options.sync_clip_start:
-                space.clip_start = master_space.clip_start
-            
-            if sync_options.sync_clip_end:
-                space.clip_end = master_space.clip_end
-            
-            if sync_options.sync_focal_length:
-                space.lens = master_space.lens
-
-
-            # Force view update
-            region.update()
+            # Guard: not all 2D editor types expose show_locked_time
+            if space and hasattr(space, 'show_locked_time'):
+                is_sync_enabled = (idx == master_2d_index) or getattr(scene, f"sync_2d_view_{idx}", False)
+                target_locked = bool(sync_options.sync_2d_horizontal and is_sync_enabled)
+                if space.show_locked_time != target_locked:
+                    space.show_locked_time = target_locked
 
 ##
 ## Manage Lights when Isolating Objects in all Views
@@ -92,10 +107,13 @@ class KT_VIEW3D_OT_local_view_all_areas(Operator):
     def execute(self, context):
         selected_objects = context.selected_objects
         active_object = context.active_object
-        sync_options = context.scene.sync_options
+        
+        # Select lights if option is enabled in preferences
+        from ..preferences import get_preferences
+        prefs = get_preferences(context)
+        dont_exclude = prefs.dont_exclude_lights
 
-        # Select lights if option is enabled
-        if sync_options.dont_exclude_lights:
+        if dont_exclude:
             lights = [obj for obj in context.scene.objects 
                     if obj.type == 'LIGHT' and obj.visible_get()]
             for light in lights:
@@ -109,10 +127,17 @@ class KT_VIEW3D_OT_local_view_all_areas(Operator):
                     override['window'] = window
                     override['screen'] = window.screen
                     override['area'] = area
-                    override['region'] = area.regions[-1]
+                    override['region'] = area.regions[-1]  # WINDOW region
                     
                     with context.temp_override(**override):
-                        bpy.ops.view3d.localview()
+                        try:
+                            bpy.ops.view3d.localview()
+                        except Exception as e:
+                            print(f"Error calling localview: {e}")
+
+        # Restore original selection (exclude lights we temporarily selected)
+        if dont_exclude:
+            pass
 
         # Frame selected objects in each view
         bpy.ops.object.select_all(action='DESELECT')
@@ -156,36 +181,63 @@ def real_time_sync_timer():
         last_master_view_state = None
         return None
 
+    # --- 3D viewports sync ---
     view3d_areas = [area for window in context.window_manager.windows 
                     for area in window.screen.areas if area.type == 'VIEW_3D']
     
     master_index = sync_options.master_view_index
-    if master_index >= len(view3d_areas):
-        return sync_options.sync_refresh_rate
+    if master_index < len(view3d_areas):
+        master_area = view3d_areas[master_index]
+        master_space = master_area.spaces.active
+        master_region = master_space.region_3d
 
-    master_area = view3d_areas[master_index]
-    master_space = master_area.spaces.active
-    master_region = master_space.region_3d
-    sync_options = scene.sync_options
+        current_state = (
+            master_region.view_location.copy() if sync_options.sync_view_location else -1,
+            master_region.view_rotation.copy() if sync_options.sync_view_rotation else -1,
+            master_region.view_distance if sync_options.sync_view_distance else -1,
+            sync_options.sync_view_distance_adjust if sync_options.sync_view_distance else -1,
 
-    current_state = (
-        master_region.view_location.copy() if sync_options.sync_view_location else -1,
-        master_region.view_rotation.copy() if sync_options.sync_view_rotation else -1,
-        master_region.view_distance if sync_options.sync_view_distance else -1,
-        sync_options.sync_view_distance_adjust if sync_options.sync_view_distance else -1,
+            master_region.view_camera_zoom if sync_options.sync_camera_zoom else -1,
+            tuple(master_region.view_camera_offset) if sync_options.sync_camera_offset else -1,
+            master_region.view_perspective if sync_options.sync_view_perspective else -1,
+            
+            master_space.clip_start if sync_options.sync_clip_start else -1,
+            master_space.clip_end if sync_options.sync_clip_end else -1,
+            master_space.lens if sync_options.sync_focal_length else -1,
+        )
 
-        master_region.view_camera_zoom if sync_options.sync_camera_zoom else -1,
-        tuple(master_region.view_camera_offset) if sync_options.sync_camera_offset else -1,
-        master_region.view_perspective if sync_options.sync_view_perspective else -1,
+        if last_master_view_state != current_state:
+            bpy.ops.view3d.sync_views()
+            last_master_view_state = current_state
+
+    # --- 2D animation editors sync ---
+    allowed_2d_types = {'DOPESHEET_EDITOR', 'GRAPH_EDITOR', 'NLA_EDITOR'}
+    
+    # Get all 2D areas across all windows
+    view2d_areas_all = []
+    for window in context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type in allowed_2d_types:
+                view2d_areas_all.append(area)
+                
+    if sync_options.sync_2d_editors:
+        master_2d_index = sync_options.master_2d_view_index
         
-        master_space.clip_start if sync_options.sync_clip_start else -1,
-        master_space.clip_end if sync_options.sync_clip_end else -1,
-        master_space.lens if sync_options.sync_focal_length else -1,
-    )
-
-    if last_master_view_state != current_state:
-        bpy.ops.view3d.sync_views()
-        last_master_view_state = current_state
+        # Update show_locked_time based on sync_2d_horizontal
+        # Guard: not all 2D editor types expose show_locked_time
+        for idx, area in enumerate(view2d_areas_all):
+            space = area.spaces.active
+            if space and hasattr(space, 'show_locked_time'):
+                is_sync_enabled = (idx == master_2d_index) or getattr(scene, f"sync_2d_view_{idx}", False)
+                target_locked = bool(sync_options.sync_2d_horizontal and is_sync_enabled)
+                if space.show_locked_time != target_locked:
+                    space.show_locked_time = target_locked
+    else:
+        # If disabled, ensure all show_locked_time are False
+        for area in view2d_areas_all:
+            space = area.spaces.active
+            if space and hasattr(space, 'show_locked_time') and space.show_locked_time:
+                space.show_locked_time = False
 
     return sync_options.sync_refresh_rate
 
@@ -462,6 +514,7 @@ def update_view_preset(self, context):
 
 ## Update View Properties (View Couunt List)
 last_view_count = -1
+last_view2d_count = -1
 last_panel_draw_time = 0.0
 
 def mark_panel_as_visible():
@@ -470,23 +523,33 @@ def mark_panel_as_visible():
     last_panel_draw_time = time.time()
 
 def update_view_properties(self, context):
-    global last_view_count
+    global last_view_count, last_view2d_count
     
     # Get ALL views from ALL windows
     view3d_areas = [area for window in bpy.context.window_manager.windows 
                     for area in window.screen.areas if area.type == 'VIEW_3D']
     view3d_count = len(view3d_areas)
 
+    allowed_2d_types = {'DOPESHEET_EDITOR', 'GRAPH_EDITOR', 'NLA_EDITOR'}
+    view2d_areas = [area for window in bpy.context.window_manager.windows 
+                    for area in window.screen.areas if area.type in allowed_2d_types]
+    view2d_count = len(view2d_areas)
+
     # Only update if the count has changed
-    if view3d_count == last_view_count:
+    if view3d_count == last_view_count and view2d_count == last_view2d_count:
         return
     
     last_view_count = view3d_count
+    last_view2d_count = view2d_count
 
     # Clean up old properties
     for i in range(view3d_count, 20):  # Reasonable limit
         if hasattr(bpy.types.Scene, f"sync_view_{i}"):
             delattr(bpy.types.Scene, f"sync_view_{i}")
+            
+    for i in range(view2d_count, 20):  # Reasonable limit
+        if hasattr(bpy.types.Scene, f"sync_2d_view_{i}"):
+            delattr(bpy.types.Scene, f"sync_2d_view_{i}")
     
     # Create new properties for all views
     for i in range(view3d_count):
@@ -507,11 +570,20 @@ def update_view_properties(self, context):
                 update=update_view_preset
             ))
 
+    for i in range(view2d_count):
+        if not hasattr(bpy.types.Scene, f"sync_2d_view_{i}"):
+            setattr(bpy.types.Scene, f"sync_2d_view_{i}", BoolProperty(
+                name=f"Sync 2D View {i}",
+                description=f"Synchronize 2D View {i}",
+                default=True
+            ))
+
     # Update master view index limit
     scene = context.scene
     sync_options = scene.sync_options
     
     sync_options.master_view_index = min(sync_options.master_view_index, max(0, view3d_count - 1))
+    sync_options.master_2d_view_index = min(sync_options.master_2d_view_index, max(0, view2d_count - 1))
 
 # Manually update the view count
 class KT_VIEW3D_OT_update_view_count(Operator):
