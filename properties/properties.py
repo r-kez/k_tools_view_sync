@@ -37,6 +37,15 @@ def update_sync_2d_editors(self, context):
     except Exception as e:
         print(f"Error updating 2D sync: {e}")
 
+def update_lock_hud_redraw(self, context):
+    try:
+        if context and hasattr(context, "screen") and context.screen:
+            for area in context.screen.areas:
+                if area.type == 'VIEW_3D':
+                    area.tag_redraw()
+    except Exception:
+        pass
+
 class KT_SyncOptions(PropertyGroup):
     addon_mode: EnumProperty( # type: ignore
         name="Panel Mode",
@@ -47,6 +56,17 @@ class KT_SyncOptions(PropertyGroup):
         ],
         default='SYNC_VIEW',
         update = update_view_list,
+    ) # type: ignore
+
+    sync_view_type: EnumProperty( # type: ignore
+        name="Sync Type",
+        description="Choose between 3D Viewports sync and 2D Animation Editors sync",
+        items=[
+            ('VIEW_3D', "3D View", "Synchronize 3D viewports navigation and settings", 'VIEW3D', 0),
+            ('VIEW_2D', "2D Editors", "Synchronize 2D animation editors (Timeline, Dopesheet, Graph, NLA)", 'TIME', 1),
+        ],
+        default='VIEW_3D',
+        update=update_view_list,
     ) # type: ignore
 
     view_3d_index: IntProperty( # type: ignore
@@ -153,6 +173,12 @@ class KT_SyncOptions(PropertyGroup):
         description="Automatically lock view rotation when entering Orthographic view in X, Y, Z axes",
         default=False
     )   # type: ignore
+    lock_hud_top: BoolProperty( # type: ignore
+        name="Lock HUD at Top",
+        description="Draw the Lock HUD notification card at the top of the 3D Viewport instead of the bottom",
+        default=False,
+        update=update_lock_hud_redraw
+    )   # type: ignore
 
     # --- 2D Editor Sync Properties ---
     master_2d_view_index: IntProperty( # type: ignore
@@ -165,7 +191,7 @@ class KT_SyncOptions(PropertyGroup):
     sync_2d_editors: BoolProperty( # type: ignore
         name="Sync 2D Editors",
         description="Sync 2D animation editors (Timeline, Dopesheet, Graph Editor, NLA)",
-        default=True,
+        default=False,
         update=update_sync_2d_editors
     ) # type: ignore
     

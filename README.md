@@ -8,12 +8,13 @@ A powerful synchronization and analysis toolkit for Blender, designed for multi-
 
 ## 🚀 What's New
 
-### **v2.9.0 (Auto-Save Safe, 2D Timeline Sync & Auto Lock Ortho)**
+### **v2.9.0 (Auto-Save Compatibility, 2D Timeline Sync, Lock HUD & Auto Lock Ortho)**
 - **Blender Auto-Save Fully Restored**: Eliminated background modal operators (`real_time_sync_modal`, `auto_master_modal`) that blocked Blender's native Auto-Save mechanism. Background sync and Auto Master now operate completely non-blocking via native timers and direct viewport state detection.
-- **2D Animation Editors Sync**: Added support for synchronizing 2D animation editors (Timeline, Dopesheet, Graph Editor, NLA Editor) with horizontal time lock.
-- **Center Playhead on Play**: Option to keep the timeline/animation editor view automatically centered on the playhead during animation playback.
-- **Auto Lock Ortho**: Automatically locks middle-mouse rotation into panning when in standard orthographic axis-aligned views.
-- **Global Preferences Defaults**: Configure default states for Auto Master and Auto Lock Ortho under Add-on Preferences.
+- **Dedicated 3D vs 2D Tabs**: Clean tabbed interface separating 3D Viewport synchronization from 2D Animation Editors synchronization without clutter.
+- **2D Animation Editors Sync**: Added support for synchronizing 2D animation editors (Timeline, Dopesheet, Graph Editor, NLA Editor) with horizontal time lock (disabled by default).
+- **Auto Lock Ortho**: Automatically locks middle-mouse rotation when in standard orthographic axis-aligned views, strictly respecting the 'Enable Pan on Lock' toggle.
+- **Lock HUD Improvements**: Added automatic padding above 2D navigation gizmos to prevent overlap, plus an option in preferences to draw the HUD card at the top of the viewport.
+- **Global Preferences Defaults**: Configure default startup behaviors under Add-on Preferences.
 
 ---
 

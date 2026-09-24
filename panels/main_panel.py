@@ -33,8 +33,6 @@ class KT_VIEW3D_PT_SyncLock_MainPanel(Panel):
         row.alert=False
 
         if mode == 'SYNC_VIEW':
-            row = layout.row()
-            row.popover(panel="KT_VIEW3D_PT_sync_options", text="Settings")            
             KT_PT_SyncPanel().draw(context, layout)
         elif mode == 'LOCK_VIEW':
             KT_PT_LockPanel().draw(context, layout)

@@ -565,20 +565,21 @@ class KT_VIEW3D_OT_smart_pan(Operator):
         
         is_locked = hasattr(context.region_data, 'lock_rotation') and context.region_data.lock_rotation
         
-        # Priority 1: Check if rotation is locked and lock pan is enabled, OR if auto lock ortho is active and we are in an axis-aligned ortho view
-        should_pan_on_lock = is_locked and (props.enable_pan_on_lock or props.auto_lock_ortho)
-        
-        should_pan_on_ortho = False
+        # Check if in an axis-aligned orthographic view with Auto Lock Ortho enabled
+        is_ortho_locked = False
         if props.auto_lock_ortho and context.region_data.view_perspective == 'ORTHO':
             import mathutils
             view_dir = context.region_data.view_rotation @ mathutils.Vector((0.0, 0.0, -1.0))
             limit = 0.9999
             is_aligned = (abs(view_dir.x) > limit or abs(view_dir.y) > limit or abs(view_dir.z) > limit)
             if is_aligned:
-                should_pan_on_ortho = True
+                is_ortho_locked = True
                 
-        if should_pan_on_lock or should_pan_on_ortho:
-            bpy.ops.view3d.move('INVOKE_DEFAULT')
+        # Priority 1: Either manually locked or automatically locked in ortho view
+        if is_locked or is_ortho_locked:
+            if props.enable_pan_on_lock:
+                bpy.ops.view3d.move('INVOKE_DEFAULT')
+            # If enable_pan_on_lock is False, rotation is locked without panning (MMB does nothing)
             return {'FINISHED'}
         
         # Priority 2: Check if in camera view and camera pan is enabled
@@ -587,9 +588,8 @@ class KT_VIEW3D_OT_smart_pan(Operator):
             bpy.ops.view3d.move('INVOKE_DEFAULT')
             return {'FINISHED'}
         
-        # Default: Normal rotation (if not locked)
-        if not is_locked:
-            bpy.ops.view3d.rotate('INVOKE_DEFAULT')
+        # Default: Normal rotation
+        bpy.ops.view3d.rotate('INVOKE_DEFAULT')
         
         return {'FINISHED'}
 
@@ -742,10 +742,30 @@ def draw_lock_hud_callback():
     card_h = label_h + padding_y * 2
     card_w = bar_width + padding_x * 2 + label_w + 10 + tag_w + tag_padding_x * 2
     
-    # Position (Center bottom)
+    # Position (Center bottom or Center top)
     width = region.width
+    height = region.height
     x = (width - card_w) / 2
-    y = 15
+
+    # Check if HUD should be drawn at the top
+    draw_at_top = getattr(props, "lock_hud_top", False) or (prefs and getattr(prefs, "lock_hud_top", False))
+
+    if draw_at_top:
+        y = height - card_h - 35
+    else:
+        # Check if 2D special navigation gizmos are currently visible in this viewport
+        has_special_gizmos = (
+            is_rotation_locked
+            and hasattr(context.window_manager, "show_gizmo_special")
+            and context.window_manager.show_gizmo_special
+            and context.space_data
+            and getattr(context.space_data, "show_gizmo", True)
+        )
+        if has_special_gizmos:
+            # Extra padding so HUD sits cleanly above the circular 2D navigation gizmo buttons (centered at y=30)
+            y = 65
+        else:
+            y = 15
     
     import gpu
     gpu.state.blend_set('ALPHA')

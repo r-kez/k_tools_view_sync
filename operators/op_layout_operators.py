@@ -128,8 +128,6 @@ class KT_VIEW3D_OT_call_sync_lock_popup(bpy.types.Operator):
         row.alert = False
 
         if mode == 'SYNC_VIEW':
-            row = layout.row()
-            row.popover(panel="KT_VIEW3D_PT_sync_options", text="Settings")            
             from ..panels.pt_sync_panel import KT_PT_SyncPanel
             KT_PT_SyncPanel().draw(context, layout)
         elif mode == 'LOCK_VIEW':

@@ -18,6 +18,18 @@ def update_auto_lock_ortho_default(self, context):
     except:
         pass
 
+def update_lock_hud_top_pref(self, context):
+    """Update current scene immediately when preference changes"""
+    try:
+        if hasattr(context.scene, "sync_options"):
+            context.scene.sync_options.lock_hud_top = self.lock_hud_top
+        if context and hasattr(context, "screen") and context.screen:
+            for area in context.screen.areas:
+                if area.type == 'VIEW_3D':
+                    area.tag_redraw()
+    except:
+        pass
+
 def update_replace_local_view(self, context):
     """Dynamically update keymap when preference toggle changes"""
     try:
@@ -64,8 +76,15 @@ class KT_ViewSync_Preferences(AddonPreferences):
 
     show_lock_hud: BoolProperty( # type: ignore
         name="Show Lock HUD Overlay",
-        description="Display a HUD card at the bottom of the viewport when rotation is locked",
-        default=True
+        description="Display a HUD notification card in the viewport when rotation is locked",
+        default=False
+    )
+
+    lock_hud_top: BoolProperty( # type: ignore
+        name="Draw Lock HUD at Top",
+        description="Draw the Lock HUD notification card at the top of the 3D Viewport instead of the bottom",
+        default=False,
+        update=update_lock_hud_top_pref
     )
 
     replace_local_view: BoolProperty( # type: ignore
@@ -106,8 +125,10 @@ class KT_ViewSync_Preferences(AddonPreferences):
         elif self.settings_tab == 'UI':
             box_ui = layout.box()
             box_ui.label(text="UI Options:", icon='RESTRICT_VIEW_OFF')
-            row_ui = box_ui.row()
-            row_ui.prop(self, "show_lock_hud")
+            col_ui = box_ui.column()
+            col_ui.prop(self, "show_lock_hud")
+            if self.show_lock_hud:
+                col_ui.prop(self, "lock_hud_top")
             
         elif self.settings_tab == 'KEYMAP':
             box_keymap = layout.box()

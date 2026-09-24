@@ -11,130 +11,143 @@ class KT_PT_SyncPanel:
         scene = context.scene
         sync_options = scene.sync_options
 
-        # --- Group 1: Main Sync Controls ---
-        col = layout.column(align=True)
-        row = col.row(align=True)
-        row.operator("view3d.sync_views", text='Single Match')
-        row.prop(scene, "real_time_sync", text="Real Time Sync", toggle=True)
+        # --- Tab Selector: 3D View vs 2D Editors ---
+        row_tabs = layout.row(align=True)
+        row_tabs.prop(sync_options, "sync_view_type", expand=True)
 
-        row = col.row(align=True)
-        row.prop(sync_options, "sync_refresh_rate", text="Refresh Rate")
+        if sync_options.sync_view_type == 'VIEW_3D':
+            # --- 3D Settings Popover ---
+            row_settings = layout.row()
+            row_settings.popover(panel="KT_VIEW3D_PT_sync_options", text="Settings")
 
-        # --- Group 2: Master Controls ---
-        col.separator()
-        row = col.row(align=True)
-        row.prop(sync_options, "auto_master", text="Auto Master", toggle=True)
-        if not sync_options.auto_master:
-            row.operator("view3d.set_current_as_master", text="Current As Master")
+            # --- Group 1: Main 3D Sync Controls ---
+            col = layout.column(align=True)
+            row = col.row(align=True)
+            row.operator("view3d.sync_views", text='Single Match')
+            row.prop(scene, "real_time_sync", text="Real Time Sync", toggle=True)
 
-        row = col.row(align=True)
-        row.prop(sync_options, "master_view_index", text="Master View")
+            row = col.row(align=True)
+            row.prop(sync_options, "sync_refresh_rate", text="Refresh Rate")
 
-        # --- Local View Controls ---
-        col.separator()
-        row = col.row(align=True)
-        row.operator("view3d.local_view_all_areas", text='Set Local View')
+            # --- Group 2: Master Controls ---
+            col.separator()
+            row = col.row(align=True)
+            row.prop(sync_options, "auto_master", text="Auto Master", toggle=True)
+            if not sync_options.auto_master:
+                row.operator("view3d.set_current_as_master", text="Current As Master")
 
-        # --- Available Views Box ---
-        col.separator()
-        box = layout.box()
-        row = box.row(align=False)
-        row.label(text="Available Views:")
-        row.operator("view3d.show_all_view_ids_gpu_enhanced", text='Identify Views')
-        row.operator("view3d.update_view_count", text="", icon='FILE_REFRESH')
+            row = col.row(align=True)
+            row.prop(sync_options, "master_view_index", text="Master View")
 
-        # Get views organized by windows
-        windows = bpy.context.window_manager.windows
-        view3d_areas = [
-            (window_index, area)
-            for window_index, window in enumerate(windows)
-            for area in window.screen.areas if area.type == 'VIEW_3D'
-        ]
+            # --- Local View Controls ---
+            col.separator()
+            row = col.row(align=True)
+            row.operator("view3d.local_view_all_areas", text='Set Local View')
 
-        window_views = {}
-        global_view_index = 0
-        for window_index, area in view3d_areas:
-            if window_index not in window_views:
-                window_views[window_index] = []
-            window_views[window_index].append((global_view_index, area))
-            global_view_index += 1
+            # --- Available Views Box ---
+            col.separator()
+            box = layout.box()
+            row = box.row(align=False)
+            row.label(text="Available Views:")
+            row.operator("view3d.show_all_view_ids_gpu_enhanced", text='Identify Views')
+            row.operator("view3d.update_view_count", text="", icon='FILE_REFRESH')
 
-        # Create sections for each window, stacked vertically
-        for window_index, areas in window_views.items():                
-            win_col = box.column(align=True)
-            win_col.label(text=f"Window {window_index}", icon='WINDOW')
-
-            for view_index, area in areas:
-                if hasattr(scene, f"sync_view_{view_index}"):
-                    row = win_col.row(align=True)
-                    row.prop(
-                        scene,
-                        f"sync_view_{view_index}",
-                        text=f"View {view_index}",
-                        icon='LOCKVIEW_ON' if getattr(scene, f"sync_view_{view_index}") else 'LOCKVIEW_OFF'
-                    )
-                    row.prop(scene, f"sync_view_preset_{view_index}", text="")
-
-        # --- 2D Editors Sync ---
-        col.separator()
-        box_2d = layout.box()
-        box_2d.label(text="2D Editors Sync", icon='TIME')
-        
-        row = box_2d.row(align=True)
-        row.prop(sync_options, "sync_2d_editors", text="Sync 2D Editors", toggle=True)
-        
-        row_playhead = box_2d.row(align=True)
-        row_playhead.prop(sync_options, "keep_playhead_centered", text="Center Playhead on Play", toggle=True)
-        
-        if sync_options.sync_2d_editors:
-            #row = box_2d.row(align=True)
-            #row.prop(sync_options, "sync_2d_horizontal", text="Horizontal (Time)", toggle=True)
-            
-            row = box_2d.row(align=True)
-            row.prop(sync_options, "master_2d_view_index", text="Master 2D View")
-
-            # List available 2D views
-            box_2d.label(text="Available 2D Views:")
-            
-            allowed_2d_types = {'DOPESHEET_EDITOR', 'GRAPH_EDITOR', 'NLA_EDITOR'}
-            view2d_areas = [
+            # Get views organized by windows
+            windows = bpy.context.window_manager.windows
+            view3d_areas = [
                 (window_index, area)
                 for window_index, window in enumerate(windows)
-                for area in window.screen.areas if area.type in allowed_2d_types
+                for area in window.screen.areas if area.type == 'VIEW_3D'
             ]
-            
-            window_2d_views = {}
-            global_2d_view_index = 0
-            for window_index, area in view2d_areas:
-                if window_index not in window_2d_views:
-                    window_2d_views[window_index] = []
-                window_2d_views[window_index].append((global_2d_view_index, area))
-                global_2d_view_index += 1
-                
-            for window_index, areas in window_2d_views.items():
-                win_2d_col = box_2d.column(align=True)
-                win_2d_col.label(text=f"Window {window_index}", icon='WINDOW')
-                
+
+            window_views = {}
+            global_view_index = 0
+            for window_index, area in view3d_areas:
+                if window_index not in window_views:
+                    window_views[window_index] = []
+                window_views[window_index].append((global_view_index, area))
+                global_view_index += 1
+
+            # Create sections for each window, stacked vertically
+            for window_index, areas in window_views.items():                
+                win_col = box.column(align=True)
+                win_col.label(text=f"Window {window_index}", icon='WINDOW')
+
                 for view_index, area in areas:
-                    if hasattr(scene, f"sync_2d_view_{view_index}"):
-                        row = win_2d_col.row(align=True)
-                        
-                        # Get a nice icon and name for the 2D editor type
-                        editor_icon = 'ACTION'
-                        editor_name = "Dopesheet"
-                        if area.type == 'GRAPH_EDITOR':
-                            editor_icon = 'GRAPH'
-                            editor_name = "Graph Editor"
-                        elif area.type == 'NLA_EDITOR':
-                            editor_icon = 'NLA'
-                            editor_name = "NLA Editor"
-                        
+                    if hasattr(scene, f"sync_view_{view_index}"):
+                        row = win_col.row(align=True)
                         row.prop(
                             scene,
-                            f"sync_2d_view_{view_index}",
-                            text=f"{editor_name} {view_index}",
-                            icon=editor_icon if getattr(scene, f"sync_2d_view_{view_index}") else 'LOCKVIEW_OFF'
+                            f"sync_view_{view_index}",
+                            text=f"View {view_index}",
+                            icon='LOCKVIEW_ON' if getattr(scene, f"sync_view_{view_index}") else 'LOCKVIEW_OFF'
                         )
+                        row.prop(scene, f"sync_view_preset_{view_index}", text="")
+
+        elif sync_options.sync_view_type == 'VIEW_2D':
+            # --- 2D Editors Sync Controls (Clean, no outer box) ---
+            col = layout.column(align=True)
+            
+            row = col.row(align=True)
+            row.prop(sync_options, "sync_2d_editors", text="Sync 2D Editors", toggle=True)
+            
+            #row_playhead = col.row(align=True)
+            #row_playhead.prop(sync_options, "keep_playhead_centered", text="Center Playhead on Play", toggle=True)
+            
+            if sync_options.sync_2d_editors:
+                row = col.row(align=True)
+                row.prop(sync_options, "master_2d_view_index", text="Master 2D View")
+
+                # Available 2D Views Box
+                col.separator()
+                box_2d = layout.box()
+                row = box_2d.row(align=False)
+                row.label(text="Available 2D Editors:")
+                row.operator("view3d.update_view_count", text="", icon='FILE_REFRESH')
+                
+                windows = bpy.context.window_manager.windows
+                allowed_2d_types = {'DOPESHEET_EDITOR', 'GRAPH_EDITOR', 'NLA_EDITOR'}
+                view2d_areas = [
+                    (window_index, area)
+                    for window_index, window in enumerate(windows)
+                    for area in window.screen.areas if area.type in allowed_2d_types
+                ]
+                
+                if not view2d_areas:
+                    box_2d.label(text="No 2D Editors open (Timeline, Dopesheet, Graph, NLA)", icon='INFO')
+                else:
+                    window_2d_views = {}
+                    global_2d_view_index = 0
+                    for window_index, area in view2d_areas:
+                        if window_index not in window_2d_views:
+                            window_2d_views[window_index] = []
+                        window_2d_views[window_index].append((global_2d_view_index, area))
+                        global_2d_view_index += 1
+                        
+                    for window_index, areas in window_2d_views.items():
+                        win_2d_col = box_2d.column(align=True)
+                        win_2d_col.label(text=f"Window {window_index}", icon='WINDOW')
+                        
+                        for view_index, area in areas:
+                            if hasattr(scene, f"sync_2d_view_{view_index}"):
+                                row = win_2d_col.row(align=True)
+                                
+                                # Get a nice icon and name for the 2D editor type
+                                editor_icon = 'ACTION'
+                                editor_name = "Dopesheet"
+                                if area.type == 'GRAPH_EDITOR':
+                                    editor_icon = 'GRAPH'
+                                    editor_name = "Graph Editor"
+                                elif area.type == 'NLA_EDITOR':
+                                    editor_icon = 'NLA'
+                                    editor_name = "NLA Editor"
+                                
+                                row.prop(
+                                    scene,
+                                    f"sync_2d_view_{view_index}",
+                                    text=f"{editor_name} ({view_index})",
+                                    icon=editor_icon if getattr(scene, f"sync_2d_view_{view_index}") else 'LOCKVIEW_OFF'
+                                )
 
 
 
