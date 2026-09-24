@@ -23,10 +23,6 @@ def update_lock_rotation(self, context):
     window = wm.windows[self.window_index]
     area = [a for a in window.screen.areas if a.type == 'VIEW_3D'][self.local_view_index]
     set_lock_rotation(area, self.lock_rotation)
-    
-    # Start modal operator when view is locked
-    if self.lock_rotation:
-        bpy.ops.view3d.locked_view_modal('INVOKE_DEFAULT')
 
 
 # **********************************************

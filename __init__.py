@@ -60,10 +60,10 @@ def apply_preferences_defaults(_):
 
         # 2. Restore Real Time Sync if it was saved as ON
         if scene.real_time_sync:
-            # Trigger the update function manually to restart timers/modals
+            # Trigger the update function manually to restart timer
             real_time_sync_update(scene, context)
         
-        # 3. Ensure Auto Master modal is running if it's ON
+        # 3. Ensure Auto Master state is updated if it's ON
         if hasattr(scene, "sync_options") and scene.sync_options.auto_master:
             # Import here to avoid circular dependency
             from .operators.op_auto_master import auto_master_update

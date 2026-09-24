@@ -1,4 +1,4 @@
-# K-Tools: Sync | Lock Viewport (v2.8.1)
+# K-Tools: Sync | Lock Viewport (v2.9.0)
 
 **Addon Location:** `3D View -> N-Panel -> K-Tools -> Sync | Lock Viewport`
 
@@ -8,9 +8,12 @@ A powerful synchronization and analysis toolkit for Blender, designed for multi-
 
 ## 🚀 What's New
 
-### **v2.9.0 (Auto Lock Ortho Update)**
-- **Auto Lock Ortho**: Automatically locks middle-mouse rotation into panning when you are in a standard orthographic axis-aligned view.
-- **Default Preference**: Configure whether Auto Lock Ortho starts enabled automatically under Add-on Preferences.
+### **v2.9.0 (Auto-Save Safe, 2D Timeline Sync & Auto Lock Ortho)**
+- **Blender Auto-Save Fully Restored**: Eliminated background modal operators (`real_time_sync_modal`, `auto_master_modal`) that blocked Blender's native Auto-Save mechanism. Background sync and Auto Master now operate completely non-blocking via native timers and direct viewport state detection.
+- **2D Animation Editors Sync**: Added support for synchronizing 2D animation editors (Timeline, Dopesheet, Graph Editor, NLA Editor) with horizontal time lock.
+- **Center Playhead on Play**: Option to keep the timeline/animation editor view automatically centered on the playhead during animation playback.
+- **Auto Lock Ortho**: Automatically locks middle-mouse rotation into panning when in standard orthographic axis-aligned views.
+- **Global Preferences Defaults**: Configure default states for Auto Master and Auto Lock Ortho under Add-on Preferences.
 
 ---
 

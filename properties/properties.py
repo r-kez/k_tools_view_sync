@@ -30,6 +30,13 @@ def update_view_list(self, context):
 
     bpy.ops.view3d.update_view_count()
 
+def update_sync_2d_editors(self, context):
+    try:
+        from ..operators.op_sync_operators import real_time_sync_update
+        real_time_sync_update(context.scene, context)
+    except Exception as e:
+        print(f"Error updating 2D sync: {e}")
+
 class KT_SyncOptions(PropertyGroup):
     addon_mode: EnumProperty( # type: ignore
         name="Panel Mode",
@@ -158,13 +165,22 @@ class KT_SyncOptions(PropertyGroup):
     sync_2d_editors: BoolProperty( # type: ignore
         name="Sync 2D Editors",
         description="Sync 2D animation editors (Timeline, Dopesheet, Graph Editor, NLA)",
-        default=True
+        default=True,
+        update=update_sync_2d_editors
     ) # type: ignore
     
     sync_2d_horizontal: BoolProperty( # type: ignore
         name="Horizontal (Time)",
         description="Sync horizontal pan and zoom (Time axis)",
-        default=True
+        default=True,
+        update=update_sync_2d_editors
+    ) # type: ignore
+    
+    keep_playhead_centered: BoolProperty( # type: ignore
+        name="Center Playhead on Play",
+        description="Keep the playhead centered in the 2D editors during animation playback",
+        default=False,
+        update=update_sync_2d_editors
     ) # type: ignore
 
 

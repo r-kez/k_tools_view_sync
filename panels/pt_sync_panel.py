@@ -83,9 +83,12 @@ class KT_PT_SyncPanel:
         row = box_2d.row(align=True)
         row.prop(sync_options, "sync_2d_editors", text="Sync 2D Editors", toggle=True)
         
+        row_playhead = box_2d.row(align=True)
+        row_playhead.prop(sync_options, "keep_playhead_centered", text="Center Playhead on Play", toggle=True)
+        
         if sync_options.sync_2d_editors:
-            row = box_2d.row(align=True)
-            row.prop(sync_options, "sync_2d_horizontal", text="Horizontal (Time)", toggle=True)
+            #row = box_2d.row(align=True)
+            #row.prop(sync_options, "sync_2d_horizontal", text="Horizontal (Time)", toggle=True)
             
             row = box_2d.row(align=True)
             row.prop(sync_options, "master_2d_view_index", text="Master 2D View")

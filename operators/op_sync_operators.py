@@ -170,45 +170,74 @@ class KT_VIEW3D_OT_local_view_all_areas(Operator):
 last_interaction_time = 0
 mouse_button_pressed = False
 last_master_view_state = None
+last_all_view_states = {}
+
+def get_3d_view_state(area, sync_options):
+    """Helper to extract a comparable state tuple from a 3D view area"""
+    try:
+        space = area.spaces.active
+        region = space.region_3d
+        return (
+            tuple(region.view_location) if sync_options.sync_view_location else -1,
+            tuple(region.view_rotation) if sync_options.sync_view_rotation else -1,
+            region.view_distance if sync_options.sync_view_distance else -1,
+            sync_options.sync_view_distance_adjust if sync_options.sync_view_distance else -1,
+            region.view_camera_zoom if sync_options.sync_camera_zoom else -1,
+            tuple(region.view_camera_offset) if sync_options.sync_camera_offset else -1,
+            region.view_perspective if sync_options.sync_view_perspective else -1,
+            space.clip_start if sync_options.sync_clip_start else -1,
+            space.clip_end if sync_options.sync_clip_end else -1,
+            space.lens if sync_options.sync_focal_length else -1,
+        )
+    except Exception:
+        return None
 
 def real_time_sync_timer():
-    global last_master_view_state
+    global last_master_view_state, last_all_view_states
     context = bpy.context
     scene = context.scene
+    if not scene or not hasattr(scene, "sync_options"):
+        return 0.1
     sync_options = scene.sync_options
 
-    if not scene.real_time_sync:
+    if not getattr(scene, "real_time_sync", False) and not getattr(sync_options, "sync_2d_editors", False) and not getattr(sync_options, "keep_playhead_centered", False):
         last_master_view_state = None
+        last_all_view_states.clear()
         return None
 
     # --- 3D viewports sync ---
-    view3d_areas = [area for window in context.window_manager.windows 
-                    for area in window.screen.areas if area.type == 'VIEW_3D']
-    
-    master_index = sync_options.master_view_index
-    if master_index < len(view3d_areas):
-        master_area = view3d_areas[master_index]
-        master_space = master_area.spaces.active
-        master_region = master_space.region_3d
+    if getattr(scene, "real_time_sync", False):
+        view3d_areas = [area for window in context.window_manager.windows 
+                        for area in window.screen.areas if area.type == 'VIEW_3D']
+        
+        master_index = sync_options.master_view_index
 
-        current_state = (
-            master_region.view_location.copy() if sync_options.sync_view_location else -1,
-            master_region.view_rotation.copy() if sync_options.sync_view_rotation else -1,
-            master_region.view_distance if sync_options.sync_view_distance else -1,
-            sync_options.sync_view_distance_adjust if sync_options.sync_view_distance else -1,
+        # Auto Master: automatically detect if the user navigated a non-master viewport
+        if sync_options.auto_master and len(view3d_areas) > 1:
+            for idx, area in enumerate(view3d_areas):
+                ptr = area.as_pointer()
+                curr_area_state = get_3d_view_state(area, sync_options)
+                if curr_area_state is not None and ptr in last_all_view_states:
+                    if last_all_view_states[ptr] != curr_area_state and idx != master_index:
+                        # Non-master view was navigated, make it the new master
+                        sync_options.master_view_index = idx
+                        master_index = idx
+                        area.tag_redraw()
+                        break
 
-            master_region.view_camera_zoom if sync_options.sync_camera_zoom else -1,
-            tuple(master_region.view_camera_offset) if sync_options.sync_camera_offset else -1,
-            master_region.view_perspective if sync_options.sync_view_perspective else -1,
-            
-            master_space.clip_start if sync_options.sync_clip_start else -1,
-            master_space.clip_end if sync_options.sync_clip_end else -1,
-            master_space.lens if sync_options.sync_focal_length else -1,
-        )
+        if master_index < len(view3d_areas):
+            master_area = view3d_areas[master_index]
+            current_state = get_3d_view_state(master_area, sync_options)
 
-        if last_master_view_state != current_state:
-            bpy.ops.view3d.sync_views()
-            last_master_view_state = current_state
+            if last_master_view_state != current_state:
+                bpy.ops.view3d.sync_views()
+                last_master_view_state = current_state
+
+        # Cache states for all viewports for subsequent navigation detection
+        for area in view3d_areas:
+            state = get_3d_view_state(area, sync_options)
+            if state is not None:
+                last_all_view_states[area.as_pointer()] = state
 
     # --- 2D animation editors sync ---
     allowed_2d_types = {'DOPESHEET_EDITOR', 'GRAPH_EDITOR', 'NLA_EDITOR'}
@@ -220,7 +249,7 @@ def real_time_sync_timer():
             if area.type in allowed_2d_types:
                 view2d_areas_all.append(area)
                 
-    if sync_options.sync_2d_editors:
+    if getattr(sync_options, "sync_2d_editors", False):
         master_2d_index = sync_options.master_2d_view_index
         
         # Update show_locked_time based on sync_2d_horizontal
@@ -239,41 +268,73 @@ def real_time_sync_timer():
             if space and hasattr(space, 'show_locked_time') and space.show_locked_time:
                 space.show_locked_time = False
 
+    # --- Keep playhead centered during playback ---
+    if getattr(sync_options, "keep_playhead_centered", False) and getattr(context.screen, "is_animation_playing", False):
+        for idx, area in enumerate(view2d_areas_all):
+            is_enabled = True
+            if getattr(sync_options, "sync_2d_editors", False):
+                master_2d_index = getattr(sync_options, "master_2d_view_index", 0)
+                is_enabled = (idx == master_2d_index) or getattr(scene, f"sync_2d_view_{idx}", False)
+            
+            if is_enabled:
+                region = next((r for r in area.regions if r.type == 'WINDOW'), None)
+                if region:
+                    target_window = None
+                    for window in context.window_manager.windows:
+                        if any(a == area for a in window.screen.areas):
+                            target_window = window
+                            break
+                    if target_window:
+                        override = context.copy()
+                        override['window'] = target_window
+                        override['screen'] = target_window.screen
+                        override['area'] = area
+                        override['region'] = region
+                        with context.temp_override(**override):
+                            try:
+                                bpy.ops.anim.view_frame()
+                            except Exception as e:
+                                pass
+
     return sync_options.sync_refresh_rate
 
 
 def real_time_sync_update(self, context):
-    if self.real_time_sync:
+    scene = context.scene if context else bpy.context.scene
+    if not scene or not hasattr(scene, "sync_options"):
+        return
+        
+    sync_options = scene.sync_options
+    should_run = getattr(scene, "real_time_sync", False) or getattr(sync_options, "sync_2d_editors", False) or getattr(sync_options, "keep_playhead_centered", False)
+
+    if should_run:
         if not bpy.app.timers.is_registered(real_time_sync_timer):
             bpy.app.timers.register(real_time_sync_timer)
-            bpy.ops.view3d.real_time_sync_modal('INVOKE_DEFAULT')
-        
-        # Ensure Auto Master is also active if enabled
-        sync_options = context.scene.sync_options
-        if sync_options.auto_master:
-            try:
-                bpy.ops.view3d.auto_master_modal('INVOKE_DEFAULT')
-            except:
-                pass
     else:
         if bpy.app.timers.is_registered(real_time_sync_timer):
             bpy.app.timers.unregister(real_time_sync_timer)
 
+    # Clean up all 2D locked time if 2D sync is disabled/off
+    if not getattr(sync_options, "sync_2d_editors", False) or not should_run:
+        allowed_2d_types = {'DOPESHEET_EDITOR', 'GRAPH_EDITOR', 'NLA_EDITOR'}
+        for window in context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.type in allowed_2d_types:
+                    space = area.spaces.active
+                    if space and hasattr(space, 'show_locked_time') and space.show_locked_time:
+                        try:
+                            space.show_locked_time = False
+                        except:
+                            pass
+
 
 class KT_VIEW3D_OT_real_time_sync_modal(bpy.types.Operator):
+    """Deprecated: Real-time sync is handled safely via bpy.app.timers without blocking Blender's autosave"""
     bl_idname = "view3d.real_time_sync_modal"
     bl_label = "Real Time Sync Modal"
     
-    def modal(self, context, event):
-        global mouse_button_pressed
-        
-        real_time_sync_timer.release_time = time.time()
-
-        return {'PASS_THROUGH'}
-        
-    def invoke(self, context, event):
-        context.window_manager.modal_handler_add(self)
-        return {'RUNNING_MODAL'}
+    def execute(self, context):
+        return {'FINISHED'}
 
 ##
 ##
